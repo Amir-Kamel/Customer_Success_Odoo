@@ -24,4 +24,10 @@
               name="Teams"
               parent="menu_customer_success_configurations"
               action="action_customer_success_team"/>
+
+        <!-- Tags inside Configurations -->
+    <menuitem id="menu_customer_success_tags"
+              name="Tags"
+              parent="menu_customer_success_configurations"
+              action="action_customer_success_tags"/>
 </odoo>

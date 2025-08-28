@@ -1,0 +1,17 @@
+.o_form_button_custom {
+    border-color: purple !important;
+    color: purple !important;
+    background-color: transparent !important;
+    font-weight: bold;
+    margin: 10px auto;
+    display: block;
+    width: 200px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.o_form_button_custom:hover {
+    background-color: purple !important;
+    color: white !important;
+}
+

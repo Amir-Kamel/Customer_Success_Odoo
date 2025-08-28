@@ -1,0 +1,60 @@
+<odoo>
+
+    <!-- Kanban view -->
+    <record id="view_csm_tag_kanban" model="ir.ui.view">
+        <field name="name">csm.tag.kanban</field>
+        <field name="model">csm.tag</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="name"/>
+                <field name="color"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <span t-attf-style="background-color: #{record.color.raw_value};
+                                              display:inline-block;width:20px;height:20px;margin-right:5px;"></span>
+                            <strong><field name="name"/></strong>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- List view (inline creation) -->
+    <record id="view_csm_tag_list" model="ir.ui.view">
+        <field name="name">csm.tag.list</field>
+        <field name="model">csm.tag</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="color" widget="selection_color"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form view (fallback for details) -->
+    <record id="view_csm_tag_form" model="ir.ui.view">
+        <field name="name">csm.tag.form</field>
+        <field name="model">csm.tag</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="color" widget="selection_color"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for Tags -->
+    <record id="action_customer_success_tags" model="ir.actions.act_window">
+        <field name="name">Tags</field>
+        <field name="res_model">csm.tag</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_id" ref="view_csm_tag_list"/>
+    </record>
+
+</odoo>
