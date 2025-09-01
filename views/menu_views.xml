@@ -1,6 +1,9 @@
 <odoo>
     <!-- Parent menu -->
-    <menuitem id="menu_customer_success_root" name="Customer Success"/>
+<menuitem
+    id="menu_customer_success_root"
+    name="Customer Success"
+    web_icon="customer_success,static/description/icon.png"/>
 
     <!-- Pipeline menu (formerly Records) -->
     <menuitem id="menu_customer_success_pipeline"

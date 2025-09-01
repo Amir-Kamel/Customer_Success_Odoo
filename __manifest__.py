@@ -7,7 +7,7 @@
         renewal management, and team collaboration
     """,
     'category': 'Customer Relationship Management',
-    'depends': ['base', 'crm', 'mail'],
+    'depends': ['base','web','crm', 'mail'],
     'data': [
         'security/ir.model.access.csv',
         'views/customer_success_stage_views.xml',
@@ -15,7 +15,6 @@
         'views/customer_success_views.xml',
         'views/customer_success_tags_views.xml',
         'views/menu_views.xml',
-
     ],
     'demo': [],
     'assets': {
@@ -23,7 +22,6 @@
             'customer_success/static/src/css/customer_success_styles.css',
         ],
     },
-    'images': ['static/description/icon.png'],
     'installable': True,
     'application': True,
     'auto_install': False,
