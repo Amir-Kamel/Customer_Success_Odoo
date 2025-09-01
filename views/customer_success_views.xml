@@ -88,10 +88,9 @@
                         <field name="related_crm_lead_id"/>
                         <field name="tag_ids" widget="many2many_tags" options="{'color_field':'color'}"/>
                         <field name="health_percentage" readonly="1"/>
-                        <field name="last_feedback"/>
                     </group>
                     <notebook>
-                        <page string="Internal Notes">
+                        <page string="Feedback">
 
                               <field name="last_feedback"/>
                         </page>
