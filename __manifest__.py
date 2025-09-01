@@ -1,6 +1,6 @@
 {
     'name': 'Customer Success Management',
-    'version': '1.0',
+    'version': '18.0',
     'summary': 'Track customer health and success metrics',
     'description': """
         Comprehensive customer success tracking with health scores,
@@ -9,11 +9,13 @@
     'category': 'Customer Relationship Management',
     'depends': ['base', 'crm', 'mail'],
     'data': [
+        'security/ir.model.access.csv',
         'views/customer_success_stage_views.xml',
         'views/customer_success_team_views.xml',
         'views/customer_success_views.xml',
         'views/customer_success_tags_views.xml',
         'views/menu_views.xml',
+
     ],
     'demo': [],
     'assets': {

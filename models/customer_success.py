@@ -37,7 +37,7 @@ class CustomerSuccess(models.Model):
         store=False
     )
 
-    last_feedback = fields.Text(string="Feedback")
+    last_feedback = fields.Html(string="Feedback")
     renewal_date = fields.Date(string="Renewal Date")
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
 
