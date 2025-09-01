@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_customer_success,access_customer_success,model_customer_success,,1,1,1,1
+access_customer_success_stage,access_customer_success_stage,model_customer_success_stage,,1,1,1,1
+access_customer_success_stage,access_customer_success_stage,model_customer_success_stage,,1,1,1,1
+access_csm_tag,access_csm_tag,model_csm_tag,,1,1,1,1
+access_customer_success_team,access_customer_success_team,model_customer_success_team,,1,1,1,1
+
+
+
+
