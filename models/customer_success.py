@@ -37,7 +37,7 @@ class CustomerSuccess(models.Model):
     # helper field (not visible in form, computed automatically)
     team_user_ids = fields.Many2many(
         'res.users',
-        compute='_compute_team_users',
+        compute='_compute_team_user_ids',
         store=False
     )
 
