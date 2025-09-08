@@ -42,26 +42,41 @@ class CustomerSuccess(models.Model):
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
     sequence_number = fields.Integer(string="Sequence")
 
-
-    # Health bar logic: compute percentage based on stage position
+    # Health bar logic
     health_percentage = fields.Integer(
         string="Health %",
         compute='_compute_health_percentage',
         store=False
     )
+
+    # NEW: lost reason
+    lost_reason_id = fields.Many2one(
+        'customer.success.lost.reason',
+        string="Lost Reason",
+        readonly=True,
+        copy=False
+    )
+
+    # NEW: flag indicator (green/red/none)
+    flag_color = fields.Selection(
+        [('green', 'Green'), ('red', 'Red'), ('none', 'None')],
+        string="Flag",
+        compute="_compute_flag",
+        store=False
+    )
+
     tag_ids = fields.Many2many('csm.tag', string="Tags")
     priority = fields.Selection(
-            [
-                ("0", "Normal"),
-                ("1", "Low"),
-                ("2", "High"),
-                ("3", "Very High"),
-
-            ],
-            string="Priority",
-            default="0",
-            index=True,
-        )
+        [
+            ("0", "Normal"),
+            ("1", "Low"),
+            ("2", "High"),
+            ("3", "Very High"),
+        ],
+        string="Priority",
+        default="0",
+        index=True,
+    )
 
     # Visibility / workflow helpers
     active = fields.Boolean(string='Active', default=True)
@@ -80,6 +95,10 @@ class CustomerSuccess(models.Model):
         string="Has Email Activity", compute="_compute_activity_flags"
     )
 
+    # -------------------------
+    # Onchange & Constraints
+    # -------------------------
+    @api.onchange('related_crm_lead_id')
     @api.depends("activity_ids.activity_type_id")
     def _compute_activity_flags(self):
         for rec in self:
@@ -205,15 +224,29 @@ class CustomerSuccess(models.Model):
 
     @api.depends('stage_id')
     def _compute_health_percentage(self):
+        """Health = 100% if Achieved, 0% if Lost, else relative to pipeline position."""
         all_stages = self.env['customer.success.stage'].search([], order='sequence asc')
         stage_ids = [s.id for s in all_stages]
         for rec in self:
-            if rec.stage_id and rec.stage_id.id in stage_ids and len(stage_ids) > 0:
+            if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
+                rec.health_percentage = 100
+            elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
+                rec.health_percentage = 0
+            elif rec.stage_id and rec.stage_id.id in stage_ids and len(stage_ids) > 0:
                 stage_index = stage_ids.index(rec.stage_id.id)
                 rec.health_percentage = int((stage_index + 1) / len(stage_ids) * 100)
             else:
                 rec.health_percentage = 0
 
+    @api.depends('stage_id')
+    def _compute_flag(self):
+        for rec in self:
+            if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
+                rec.flag_color = 'green'
+            elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
+                rec.flag_color = 'red'
+            else:
+                rec.flag_color = 'none'
 
     @api.constrains('team_id', 'assigned_user_id')
     def _check_assigned_user_in_team(self):
@@ -221,13 +254,14 @@ class CustomerSuccess(models.Model):
             if rec.team_id and rec.assigned_user_id and rec.assigned_user_id not in rec.team_id.user_ids:
                 raise ValidationError("Assigned user must be a member of the selected team.")
 
-
+    # -------------------------
+    # Group Expansion
+    # -------------------------
     def _read_group_stage_ids(self, stages, domain, order=None):
         return self.env['customer.success.stage'].search([], order='sequence')
 
     @api.model
     def _read_group_stage_ids(self, stages, domain, order=None, *args, **kwargs):
-
         order = order or 'sequence asc'
         Stage = self.env['customer.success.stage']
         stage_records = Stage.sudo().search([], order=order)
@@ -240,7 +274,6 @@ class CustomerSuccess(models.Model):
         return self.env['customer.success.stage'].search([('name', '=', name)], limit=1)
 
     def action_set_won(self):
-
         won = self._get_stage_by_name('Won')
         if not won:
             raise UserError("Stage 'Won' not found. Please create a stage named 'Won'.")
@@ -251,19 +284,23 @@ class CustomerSuccess(models.Model):
         return True
 
     def action_set_lost(self):
-
-        lost = self._get_stage_by_name('Lost')
-        if not lost:
-            raise UserError("Stage 'Lost' not found. Please create a stage named 'Lost'.")
-        for rec in self:
-            rec.stage_id = lost
-            rec.probability = 0
-        return True
+        """Open wizard instead of directly setting Lost stage."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirm Lost',
+            'res_model': 'customer.success.lost.reason.wizard',
+            'view_mode': 'form',
+            'view_id': self.env.ref(
+                'Customer_Success_Odoo.view_customer_success_lost_reason_wizard_form'
+            ).id,
+            'target': 'new',
+            'context': {'default_customer_success_id': self.id},
+        }
 
 
 
     def toggle_active(self):
-
         for rec in self:
             rec.active = not bool(rec.active)
         return True
