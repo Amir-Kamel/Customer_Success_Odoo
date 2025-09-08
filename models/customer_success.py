@@ -12,10 +12,6 @@ class CustomerSuccess(models.Model):
     # Core fields
     name = fields.Char(string="Title", required=True, tracking=True)
     partner_id = fields.Many2one('res.partner', string="Customer", tracking=True)
-    health_score = fields.Selection(
-        [('high', 'High'), ('medium', 'Medium'), ('low', 'Low')],
-        string="Health Score", default='medium'
-    )
 
     # Stage + grouping
     stage_id = fields.Many2one(
@@ -69,22 +65,120 @@ class CustomerSuccess(models.Model):
 
     # Visibility / workflow helpers
     active = fields.Boolean(string='Active', default=True)
-    type = fields.Selection(
-        [('new', 'New'), ('proposition', 'Proposition'), ('opportunity', 'Opportunity'), ('lead', 'Lead')],
-        string='Type', default='new', required=True
+
+
+    activity_ids = fields.One2many(
+        'mail.activity', 'res_id',
+        string="Activities",
+        domain=[('res_model', '=', 'customer.success')],
     )
 
-    @api.onchange('related_crm_lead_id')
-    def _onchange_related_crm_lead_id(self):
-        if self.related_crm_lead_id:
-            # Fill partner
-            self.partner_id = self.related_crm_lead_id.partner_id
-            # Fill phone and email from CRM lead
-            self.phone = self.related_crm_lead_id.phone or self.related_crm_lead_id.partner_id.phone
-            self.email = self.related_crm_lead_id.email_from or self.related_crm_lead_id.partner_id.email
-            # Fill title (name)
-            self.name = self.related_crm_lead_id.name
+    has_call_activity = fields.Boolean(
+        string="Has Call Activity", compute="_compute_activity_flags"
+    )
+    has_email_activity = fields.Boolean(
+        string="Has Email Activity", compute="_compute_activity_flags"
+    )
 
+    @api.depends("activity_ids.activity_type_id")
+    def _compute_activity_flags(self):
+        for rec in self:
+            rec.has_call_activity = any(
+                a.activity_type_id and a.activity_type_id.default_type == "call"
+                for a in rec.activity_ids
+            )
+            rec.has_email_activity = any(
+                a.activity_type_id and a.activity_type_id.default_type == "email"
+                for a in rec.activity_ids
+            )
+
+    # -------- Onchange handlers CRM and Partner data --------
+
+    @api.onchange("partner_id")
+    def _onchange_partner_id(self):
+        """When partner changes, update phone/email (reset first)."""
+        self.phone = False
+        self.email = False
+        if self.partner_id:
+            self.phone = self.partner_id.phone or False
+            self.email = self.partner_id.email or False
+
+    @api.onchange("related_crm_lead_id")
+    def _onchange_related_crm_lead_id(self):
+        """When CRM lead changes, update partner, title, phone/email (reset first)."""
+        self.partner_id = False
+        self.name = False
+        self.phone = False
+        self.email = False
+
+        if self.related_crm_lead_id:
+            lead = self.related_crm_lead_id
+
+            # Fill Partner & Title
+            if lead.partner_id:
+                self.partner_id = lead.partner_id
+            if lead.name:
+                self.name = lead.name
+
+            # Fill phone/email (prefer partner, fallback to lead)
+            if lead.partner_id:
+                self.phone = lead.partner_id.phone or lead.phone or False
+                self.email = lead.partner_id.email or lead.email_from or False
+            else:
+                self.phone = lead.phone or False
+                self.email = lead.email_from or False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            lead = None
+            if vals.get("related_crm_lead_id"):
+                lead = self.env["crm.lead"].browse(vals["related_crm_lead_id"])
+
+                # Only overwrite partner_id if user didn't manually choose it
+                if not vals.get("partner_id") and lead.partner_id:
+                    vals["partner_id"] = lead.partner_id.id
+
+                # Title always from CRM
+                vals["name"] = lead.name or vals.get("name")
+
+            # Fill phone/email from partner if exists
+            if vals.get("partner_id"):
+                partner = self.env["res.partner"].browse(vals["partner_id"])
+                vals["phone"] = partner.phone or vals.get("phone")
+                vals["email"] = partner.email or vals.get("email")
+            # Fallback: no partner, but lead exists
+            elif lead:
+                vals["phone"] = lead.phone or vals.get("phone")
+                vals["email"] = lead.email_from or vals.get("email")
+
+        return super().create(vals_list)
+
+    def write(self, vals):
+        lead = None
+        if "related_crm_lead_id" in vals:
+            lead = self.env["crm.lead"].browse(vals["related_crm_lead_id"])
+
+            # Only overwrite partner_id if user didn't manually choose it
+            if "partner_id" not in vals and lead.partner_id:
+                vals["partner_id"] = lead.partner_id.id
+
+            # Title always from CRM
+            vals["name"] = lead.name or vals.get("name")
+
+        # Fill phone/email from partner if exists
+        if "partner_id" in vals:
+            partner = self.env["res.partner"].browse(vals["partner_id"])
+            vals["phone"] = partner.phone or vals.get("phone")
+            vals["email"] = partner.email or vals.get("email")
+        # Fallback: no partner, but lead exists
+        elif lead:
+            vals["phone"] = lead.phone or vals.get("phone")
+            vals["email"] = lead.email_from or vals.get("email")
+
+        return super().write(vals)
+
+    # -------- Onchange handlers CRM and Partner data --------
 
     def action_open_related_crm_lead(self):
         """Open the related CRM Lead in a form view"""
@@ -103,12 +197,11 @@ class CustomerSuccess(models.Model):
         """Compute available users based on selected team"""
         for rec in self:
             if rec.team_id:
-
                 users = getattr(rec.team_id, 'user_ids', self.env['res.users'].browse())
                 rec.team_user_ids = users
             else:
                 rec.team_user_ids = self.env['res.users'].browse()
-            rec.team_user_ids = rec.team_id.user_ids if rec.team_id else False
+            rec.team_user_ids = rec.team_id.user_ids if rec.team_id else self.env['res.users'].browse()
 
     @api.depends('stage_id')
     def _compute_health_percentage(self):
@@ -167,25 +260,7 @@ class CustomerSuccess(models.Model):
             rec.probability = 0
         return True
 
-    def action_set_proposition(self):
 
-        prop = self._get_stage_by_name('Proposition')
-        if not prop:
-            raise UserError("Stage 'Proposition' not found. Please create a stage named 'Proposition'.")
-        for rec in self:
-            rec.stage_id = prop
-            rec.probability = 50
-        return True
-
-    def action_set_new(self):
-
-        new = self._get_stage_by_name('New')
-        if not new:
-            raise UserError("Stage 'New' not found. Please create a stage named 'New'.")
-        for rec in self:
-            rec.stage_id = new
-            rec.probability = 10
-        return True
 
     def toggle_active(self):
 
@@ -193,76 +268,3 @@ class CustomerSuccess(models.Model):
             rec.active = not bool(rec.active)
         return True
 
-    # Convert to CRM opportunity (create crm.lead)
-    def action_convert_to_opportunity(self):
-        Lead = self.env['crm.lead']
-        created = self.env['crm.lead']
-        for rec in self:
-            if rec.related_crm_lead_id:
-                created |= rec.related_crm_lead_id
-                continue
-            vals = {
-                'name': rec.name or 'Opportunity from Customer Success',
-                'partner_id': rec.partner_id.id or False,
-                'phone': rec.phone or False,
-                'email_from': rec.email or False,
-            }
-            lead = Lead.create(vals)
-            rec.related_crm_lead_id = lead
-            rec.type = 'opportunity'
-            created |= lead
-
-        if len(created) == 1:
-            lead = created
-            view = self.env.ref('crm.crm_case_form_view_oppor', False)
-            return {
-                'name': 'Opportunity',
-                'type': 'ir.actions.act_window',
-                'res_model': 'crm.lead',
-                'res_id': lead.id,
-                'view_mode': 'form',
-                'view_id': view and view.id or False,
-                'target': 'current',
-            }
-        elif created:
-            return {
-                'name': 'Opportunities',
-                'type': 'ir.actions.act_window',
-                'res_model': 'crm.lead',
-                'domain': [('id', 'in', created.ids)],
-                'view_mode': 'tree,form',
-                'target': 'current',
-            }
-        return True
-
-
-
-    def action_open_related_crm_lead(self):
-
-        Lead = self.env['crm.lead']
-        leads = self.mapped('related_crm_lead_id').filtered(lambda r: bool(r))
-        if not leads:
-            # No related leads — helpful UserError so the user knows why button is hidden normally.
-            raise UserError("No related CRM Opportunity/Lead is linked to this record.")
-        # If only one lead, open it in form
-        if len(leads) == 1:
-            lead = leads[0]
-            view = self.env.ref('crm.crm_case_form_view_oppor', False)
-            return {
-                'name': 'Opportunity',
-                'type': 'ir.actions.act_window',
-                'res_model': 'crm.lead',
-                'res_id': lead.id,
-                'view_mode': 'form',
-                'view_id': view and view.id or False,
-                'target': 'current',
-            }
-        # For many leads (unlikely with a Many2one), show list
-        return {
-            'name': 'Opportunities',
-            'type': 'ir.actions.act_window',
-            'res_model': 'crm.lead',
-            'domain': [('id', 'in', leads.ids)],
-            'view_mode': 'tree,form',
-            'target': 'current',
-        }
