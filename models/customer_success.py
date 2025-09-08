@@ -3,6 +3,7 @@ from datetime import date
 from odoo.exceptions import ValidationError
 from odoo.exceptions import UserError
 
+
 class CustomerSuccess(models.Model):
     _name = 'customer.success'
     _inherit = ['mail.thread', 'mail.activity.mixin']
@@ -20,7 +21,6 @@ class CustomerSuccess(models.Model):
     )
     team_id = fields.Many2one('customer.success.team', string="Team")
 
-    probability = fields.Integer(string='Probability', default=0)
 
     assigned_user_id = fields.Many2one(
         'res.users',
@@ -57,6 +57,12 @@ class CustomerSuccess(models.Model):
         copy=False
     )
 
+    lost_reason_label = fields.Char(
+        string="Lost Reason Label",
+        compute='_compute_lost_reason_label'
+    )
+
+
     # NEW: flag indicator (green/red/none)
     flag_color = fields.Selection(
         [('green', 'Green'), ('red', 'Red'), ('none', 'None')],
@@ -78,6 +84,8 @@ class CustomerSuccess(models.Model):
         index=True,
     )
 
+
+
     # Visibility / workflow helpers
     active = fields.Boolean(string='Active', default=True)
 
@@ -98,7 +106,7 @@ class CustomerSuccess(models.Model):
     # -------------------------
     # Onchange & Constraints
     # -------------------------
-    @api.onchange('related_crm_lead_id')
+
     @api.depends("activity_ids.activity_type_id")
     def _compute_activity_flags(self):
         for rec in self:
@@ -202,6 +210,8 @@ class CustomerSuccess(models.Model):
     def action_open_related_crm_lead(self):
         """Open the related CRM Lead in a form view"""
         self.ensure_one()
+        if not self.related_crm_lead_id:
+            raise UserError("No related CRM Lead chosen!")
         return {
             'type': 'ir.actions.act_window',
             'name': 'CRM Lead',
@@ -228,7 +238,7 @@ class CustomerSuccess(models.Model):
         all_stages = self.env['customer.success.stage'].search([], order='sequence asc')
         stage_ids = [s.id for s in all_stages]
         for rec in self:
-            if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
+            if rec.stage_id and rec.stage_id.name.lower() == 'won':
                 rec.health_percentage = 100
             elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
                 rec.health_percentage = 0
@@ -279,12 +289,14 @@ class CustomerSuccess(models.Model):
             raise UserError("Stage 'Won' not found. Please create a stage named 'Won'.")
         for rec in self:
             rec.stage_id = won
-            rec.probability = 100
             rec.active = True
         return True
 
     def action_set_lost(self):
         """Open wizard instead of directly setting Lost stage."""
+        lost = self._get_stage_by_name('Lost')
+        if not lost:
+            raise UserError("Stage 'Lost' not found. Please create a stage named 'Lost'.")
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
@@ -292,13 +304,19 @@ class CustomerSuccess(models.Model):
             'res_model': 'customer.success.lost.reason.wizard',
             'view_mode': 'form',
             'view_id': self.env.ref(
-                'Customer_Success_Odoo.view_customer_success_lost_reason_wizard_form'
-            ).id,
+                'customer_success.view_customer_success_lost_reason_wizard_form'
+                ).id,
             'target': 'new',
             'context': {'default_customer_success_id': self.id},
         }
 
-
+    @api.depends('stage_id', 'lost_reason_id')
+    def _compute_lost_reason_label(self):
+        for rec in self:
+            if rec.stage_id.name == 'Lost' and rec.lost_reason_id:
+                rec.lost_reason_label = f"Lost Reason: {rec.lost_reason_id.name}"
+            else:
+                rec.lost_reason_label = False
 
     def toggle_active(self):
         for rec in self:
