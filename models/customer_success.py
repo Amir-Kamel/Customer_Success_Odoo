@@ -1,13 +1,21 @@
-from odoo import models, fields, api
+from odoo import models, fields, api,_
 from datetime import date
 from odoo.exceptions import ValidationError
 from odoo.exceptions import UserError
+
 
 class CustomerSuccess(models.Model):
     _name = 'customer.success'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Customer Success Record'
     _order = 'sequence_number, id'
+
+    # show_achieved_btn = fields.Boolean(string='Show Achieved Button',
+    #                                    compute='_compute_stage_buttons',
+    #                                    store=False)
+    # show_lost_btn = fields.Boolean(string='Show Lost Button',
+    #                                compute='_compute_stage_buttons',
+    #                                store=False)
 
     # Core fields
     name = fields.Char(string="Title", required=True, tracking=True)
@@ -203,32 +211,125 @@ class CustomerSuccess(models.Model):
 
 
 
-    def action_open_related_crm_lead(self):
+    # def action_open_related_crm_lead(self):
+    #
+    #     Lead = self.env['crm.lead']
+    #     leads = self.mapped('related_crm_lead_id').filtered(lambda r: bool(r))
+    #     if not leads:
+    #         # No related leads — helpful UserError so the user knows why button is hidden normally.
+    #         raise UserError("No related CRM Opportunity/Lead is linked to this record.")
+    #     # If only one lead, open it in form
+    #     if len(leads) == 1:
+    #         lead = leads[0]
+    #         view = self.env.ref('crm.crm_case_form_view_oppor', False)
+    #         return {
+    #             'name': 'Opportunity',
+    #             'type': 'ir.actions.act_window',
+    #             'res_model': 'crm.lead',
+    #             'res_id': lead.id,
+    #             'view_mode': 'form',
+    #             'view_id': view and view.id or False,
+    #             'target': 'current',
+    #         }
+    #     # For many leads (unlikely with a Many2one), show list
+    #     return {
+    #         'name': 'Opportunities',
+    #         'type': 'ir.actions.act_window',
+    #         'res_model': 'crm.lead',
+    #         'domain': [('id', 'in', leads.ids)],
+    #         'view_mode': 'tree,form',
+    #         'target': 'current',
+    #     }
 
-        Lead = self.env['crm.lead']
+
+
+
+    def action_open_related_crm_lead(self):
+        self.ensure_one()
         leads = self.mapped('related_crm_lead_id').filtered(lambda r: bool(r))
         if not leads:
-            # No related leads — helpful UserError so the user knows why button is hidden normally.
-            raise UserError("No related CRM Opportunity/Lead is linked to this record.")
-        # If only one lead, open it in form
+            raise UserError(_("No related CRM Opportunity/Lead is linked to this record."))
+
+        readonly_ctx = {
+            'form_view_initial_mode': 'view',
+            'create': False,
+            'edit': False,
+            'delete': False,
+        }
+
+        # single
         if len(leads) == 1:
             lead = leads[0]
-            view = self.env.ref('crm.crm_case_form_view_oppor', False)
-            return {
-                'name': 'Opportunity',
+            form_view = self.env.ref('crm.crm_case_form_view_oppor', raise_if_not_found=False)
+            action = {
                 'type': 'ir.actions.act_window',
+                'name': _('Opportunity'),
                 'res_model': 'crm.lead',
                 'res_id': lead.id,
                 'view_mode': 'form',
-                'view_id': view and view.id or False,
                 'target': 'current',
+                'context': readonly_ctx,
             }
-        # For many leads (unlikely with a Many2one), show list
-        return {
-            'name': 'Opportunities',
+            if form_view:
+                action['views'] = [(form_view.id, 'form')]
+                action['view_id'] = form_view.id
+            return action
+
+        # multiple
+        tree_view = self.env.ref('crm.crm_case_tree_view_oppor', raise_if_not_found=False)
+        form_view = self.env.ref('crm.crm_case_form_view_oppor', raise_if_not_found=False)
+        views = []
+        if tree_view:
+            views.append((tree_view.id, 'tree'))
+        if form_view:
+            views.append((form_view.id, 'form'))
+
+        action = {
             'type': 'ir.actions.act_window',
+            'name': _('Opportunities'),
             'res_model': 'crm.lead',
             'domain': [('id', 'in', leads.ids)],
             'view_mode': 'tree,form',
             'target': 'current',
+            'context': readonly_ctx,
         }
+        if views:
+            action['views'] = views
+        return action
+
+
+
+
+# ---- top-level CRM lead extension (must be outside CustomerSuccess class) ----
+class CrmLeadInherit(models.Model):
+    _inherit = "crm.lead"
+
+    def write(self, vals):
+        res = super().write(vals)
+        # if stage changed, check for Won
+        if 'stage_id' in vals:
+            won_stage = self.env['crm.stage'].search([('name', '=', 'Won')], limit=1)
+            cs_model = self.env['customer.success']
+            first_stage = self.env['customer.success.stage'].search([], order='sequence asc', limit=1)
+            for lead in self:
+                if won_stage and lead.stage_id and lead.stage_id.id == won_stage.id:
+                    existing = cs_model.search([('related_crm_lead_id', '=', lead.id)], limit=1)
+                    if existing:
+                        continue
+                    vals_cs = {
+                        'name': lead.name or _('Opportunity: %s') % lead.id,
+                        'partner_id': lead.partner_id.id or False,
+                        'phone': getattr(lead, 'phone', False) or getattr(lead, 'contact_phone', False) or False,
+                        'email': lead.email_from or False,
+                        'stage_id': first_stage.id if first_stage else False,
+                        'related_crm_lead_id': lead.id,
+                        'last_feedback': lead.description or False,
+                    }
+
+        return res
+
+
+
+
+
+

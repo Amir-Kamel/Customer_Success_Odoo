@@ -87,6 +87,8 @@
     <field name="arch" type="xml">
       <form string="Customer Success">
         <header>
+
+
           <button name="action_set_new" string="New" type="object" class="btn-secondary" title="Set New"
                   invisible="not active or type == 'new'"/>
           <button name="action_set_proposition" string="Proposition" type="object" class="btn-secondary"
@@ -97,18 +99,23 @@
                   title="Mark as lost" invisible="not active"/>
           <button name="action_convert_to_opportunity" string="Convert to Opportunity" type="object"
                   class="btn-outline-primary" invisible="type == 'opportunity' or not active"/>
-<!--          <button name="toggle_active" string="Archive" type="object"/>-->
+<!--&lt;!&ndash;          <button name="toggle_active" string="Archive" type="object"/>&ndash;&gt;-->
 
-          <button name="action_open_related_crm_lead"
-        type="object"
-        string="Related CRM Lead"
-        class="btn btn-outline-primary o_crm_smartbutton_center"
-        invisible="related_crm_lead_id == False"
-        title="Open related CRM Opportunity"/>
+
+
 
           <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}"/>
         </header>
         <sheet>
+           <!-- smart button -->
+          <div class="oe_button_box" name="button_box">
+          <button name="action_open_related_crm_lead"
+                  type="object"
+                  class="oe_stat_button"
+                  icon="fa-briefcase"
+                  string="Related CRM Lead"
+                  invisible="related_crm_lead_id == False"/>
+          </div>
           <group>
             <group>
               <field name="name"/>
