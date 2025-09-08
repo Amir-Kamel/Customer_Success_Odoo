@@ -1,45 +1,70 @@
-# Customer Success Module - Task Assignments
-
-## Assigned Tasks
-
-### Amir
-- Edit the menu:
-  - Add a **Configurations** submenu containing *Teams*, *Tags*, and *Stages*.
-  - Rename the **Records** menu to **Pipeline**.
-- Add a **Team Leader** field to the *Teams* module (relation with `res.users`).
-- Restrict the available users in the **Assigned User** field (renamed to **Success Partner**) in the *Pipeline* module based on the chosen team.
-- When selecting a related CRM record, automatically update the **Title** and **Customer** fields with data from the chosen CRM record.
-- Automatically populate **Phone** and **Email** fields from the linked `partner_id`.
-- Create a **Tags** module and connect it to the *Customer Success* model, similar to how tags work in CRM.
+# Customer Success Module – Enhancements 
 
 ---
 
-### Mahmoud
-- Fix the **Health Bar** (UI/UX only: make it increase and decrease properly).
-- After fixing, display the health bar inside record details (with percentage shown).
-- Remove the **Stage** field from details view and replace it with **Workflow Flags** at the top right of the page.
-- Add a **Star Rating** field:
-  - Show stars in *Kanban cards*.
-  - Show stars in *Record Details* (use `priority` widget or selection field).
-- Add a **CRM button** at the top center of the page, linking to the related CRM record.
+## 📌 Features & Enhancements  
+
+### 1. Stages  
+- Inline form view for stages (similar to Tags – no separate form page).  
+- Add checkboxes for:  
+  - **Achieved stage**  
+  - **Lost stage**  
+- Only one option (Achieved or Lost) can be selected per stage.  
+
+### 2. Demo Data  
+- Provide demo data automatically upon app installation.  
+
+### 3. Automatic Field Population  
+- **Phone** and **Email** are auto-filled from the linked **Partner (`partner_id`)**.  
+- **Title** and **Customer** are auto-filled from the related **CRM Lead**.  
+- If filled automatically → field becomes **read-only**.  
+- If no data exists → field remains **editable**.  
+
+### 4. Record Details Page Redesign  
+- Two-column layout.  
+- Page headline = **Title only** (remove extra header).  
+- **Left column:** Customer, Mobile, Email, Health, Renewable Date.  
+- **Right column:** Team, Success Partner, Related CRM, Tags.  
+
+### 5. Kanban View & Activity Tracking  
+- Inherit `mail.thread` and `mail.activity.mixin`.  
+- Add activity tracking icons:  
+  - ⏰ for activities  
+  - ✉️ for emails  
+- Show icons in Kanban cards + Record Details page.  
+- Remove field labels in Kanban (display only values, e.g., show “Amir Kamel” instead of “Customer: Amir Kamel”).  
+
+### 6. CRM Lead Integration  
+- Related CRM Lead shown as a **smart button** (center of page).  
+- Users can only **read** the CRM record (no edit/update/delete/unlink).  
+- When a CRM record reaches **Won stage**:  
+  - Automatically create a new record in the **first Customer Success stage**.  
+  - Auto-fill Title, Partner, Phone, Email.  
+  - Notes visible but not editable.  
+
+### 7. Stage-Based Actions & Buttons  
+- If at least one **Achieved** stage & one **Lost** stage exist → show two buttons:  
+  - ✅ Achieved (green)  
+  - ❌ Lost (red)  
+- If only Achieved stages exist → show **Achieved button only**.  
+- If only Lost stages exist → show **Lost button only**.  
+- Remove other default stage buttons.  
+
+### 8. Behavior on Achieved Stage  
+- Health = **100%**.  
+- Show **green flag widget** in top-right corner.  
+- Trigger **success animation** (similar to CRM).  
+- Hide stage action buttons (based on config).  
+
+### 9. Behavior on Lost Stage  
+- Health = **0%**.  
+- Show **red flag widget** in top-right corner.  
+- Open **popup window** asking for **reason of loss**.  
+- After confirmation:  
+  - Save reason as read-only **Lost Reason** field in details page.  
+  - Hide stage action buttons (based on config).  
+
+### 10. Dashboard (Postponed)  
+- Dashboard feature planned but **postponed for now**.  
 
 ---
-
-### Mina
-- Modify the **Last Feedback** field:
-  - Rename it to **Feedback**.
-  - Move it to the bottom of the page inside a new *tab sheet*.
-  - Convert it to an **HTML field**.
-- Add an **Avatar** for the Success Partner:
-  - In *Kanban view*: remove the label "Assigned:" and instead display the avatar beside the Success Partner’s name.
-- Inherit `mail.thread` and `mail.activity.mixin`, then add activity tracking in *Kanban cards*.
-- Redesign the **Record Details page**:
-  - Use a **two-column layout**.
-  - Page headline should display only the *Title* field (remove extra header).
-  - **Left column:** Customer, Mobile, Email, Health, Renewable Date.  
-  - **Right column:** Team, Success Partner (Assigned User), Related CRM, Tags.
-
----
-
-## Postponed Tasks
-- Implement a **Dashboard** (to be planned later).
