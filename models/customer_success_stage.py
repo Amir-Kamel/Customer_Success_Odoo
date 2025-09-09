@@ -1,5 +1,4 @@
 from odoo import models, fields
-
 class CustomerSuccessStage(models.Model):
     _name = 'customer.success.stage'
     _description = 'Customer Success Stage'

@@ -88,24 +88,24 @@
       <form string="Customer Success">
         <header>
 
+           <button name="action_set_won"
+                    string="Won"
+                    type="object"
+                    class="oe_highlight"
+                    data-hotkey="w"
+                    title="Mark as won"
+                    invisible="not active or probability == 100 or type == 'lead'"/>
+            <button name="action_set_lost"
+                    string="Lost"
+                    type="object"
+                    class="btn-danger"
+                    data-hotkey="l"
+                    title="Mark as lost"
+                    invisible="not active"/>
+            <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}"/>
 
-          <button name="action_set_new" string="New" type="object" class="btn-secondary" title="Set New"
-                  invisible="not active or type == 'new'"/>
-          <button name="action_set_proposition" string="Proposition" type="object" class="btn-secondary"
-                  title="Set Proposition" invisible="not active"/>
-          <button name="action_set_won" string="Won" type="object" class="btn-success" data-hotkey="w"
-                  title="Mark as won" invisible="not active or probability == 100"/>
-          <button name="action_set_lost" string="Lost" type="object" class="btn-danger" data-hotkey="l"
-                  title="Mark as lost" invisible="not active"/>
-          <button name="action_convert_to_opportunity" string="Convert to Opportunity" type="object"
-                  class="btn-outline-primary" invisible="type == 'opportunity' or not active"/>
-<!--&lt;!&ndash;          <button name="toggle_active" string="Archive" type="object"/>&ndash;&gt;-->
-
-
-
-
-          <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}"/>
         </header>
+
         <sheet>
            <!-- smart button -->
           <div class="oe_button_box" name="button_box">
@@ -116,6 +116,9 @@
                   string="Related CRM Lead"
                   invisible="related_crm_lead_id == False"/>
           </div>
+
+          <widget name="web_ribbon" title="Won" bg_color="text-bg-success" invisible="probability != 100 or not active"/>
+
           <group>
             <group>
               <field name="name"/>
