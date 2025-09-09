@@ -63,6 +63,7 @@ class CustomerSuccess(models.Model):
     )
 
 
+
     # NEW: flag indicator (green/red/none)
     flag_color = fields.Selection(
         [('green', 'Green'), ('red', 'Red'), ('none', 'None')],
@@ -121,91 +122,41 @@ class CustomerSuccess(models.Model):
 
     # -------- Onchange handlers CRM and Partner data --------
 
-    @api.onchange("partner_id")
+    @api.onchange('related_crm_lead_id')
+    def _onchange_related_crm_lead_id(self):
+        """Reset all relevant fields, then set title, partner, and phone/email intelligently."""
+        lead = self.related_crm_lead_id
+        if not lead:
+            return
+        # Always set the name/title
+        self.name = lead.name or False
+        self.partner_id = lead.partner_id or False
+        self.phone = lead.partner_id.phone or lead.phone or False
+        self.email = lead.partner_id.email or lead.email_from or False
+
+
+    @api.onchange('partner_id')
     def _onchange_partner_id(self):
-        """When partner changes, update phone/email (reset first)."""
-        self.phone = False
-        self.email = False
+        """Reset phone/email, then set from partner."""
+        if not self.partner_id:
+            return
+
+        if self.related_crm_lead_id and self.related_crm_lead_id.partner_id:
+            if self.partner_id != self.related_crm_lead_id.partner_id:
+                # Revert the change
+                self.partner_id = self.related_crm_lead_id.partner_id
+                return {
+                    'warning': {
+                        'title': "Partner cannot be changed",
+                        'message': "This record is linked to a CRM lead that already has a partner. "
+                                   "You cannot assign a different partner. "
+                                    "Choose a partner in this related CRM lead instead.",
+                    }
+                }
+
         if self.partner_id:
             self.phone = self.partner_id.phone or False
             self.email = self.partner_id.email or False
-
-    @api.onchange("related_crm_lead_id")
-    def _onchange_related_crm_lead_id(self):
-        """When CRM lead changes, update partner, title, phone/email (reset first)."""
-        self.partner_id = False
-        self.name = False
-        self.phone = False
-        self.email = False
-
-        if self.related_crm_lead_id:
-            lead = self.related_crm_lead_id
-
-            # Fill Partner & Title
-            if lead.partner_id:
-                self.partner_id = lead.partner_id
-            if lead.name:
-                self.name = lead.name
-
-            # Fill phone/email (prefer partner, fallback to lead)
-            if lead.partner_id:
-                self.phone = lead.partner_id.phone or lead.phone or False
-                self.email = lead.partner_id.email or lead.email_from or False
-            else:
-                self.phone = lead.phone or False
-                self.email = lead.email_from or False
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            lead = None
-            if vals.get("related_crm_lead_id"):
-                lead = self.env["crm.lead"].browse(vals["related_crm_lead_id"])
-
-                # Only overwrite partner_id if user didn't manually choose it
-                if not vals.get("partner_id") and lead.partner_id:
-                    vals["partner_id"] = lead.partner_id.id
-
-                # Title always from CRM
-                vals["name"] = lead.name or vals.get("name")
-
-            # Fill phone/email from partner if exists
-            if vals.get("partner_id"):
-                partner = self.env["res.partner"].browse(vals["partner_id"])
-                vals["phone"] = partner.phone or vals.get("phone")
-                vals["email"] = partner.email or vals.get("email")
-            # Fallback: no partner, but lead exists
-            elif lead:
-                vals["phone"] = lead.phone or vals.get("phone")
-                vals["email"] = lead.email_from or vals.get("email")
-
-        return super().create(vals_list)
-
-    def write(self, vals):
-        lead = None
-        if "related_crm_lead_id" in vals:
-            lead = self.env["crm.lead"].browse(vals["related_crm_lead_id"])
-
-            # Only overwrite partner_id if user didn't manually choose it
-            if "partner_id" not in vals and lead.partner_id:
-                vals["partner_id"] = lead.partner_id.id
-
-            # Title always from CRM
-            vals["name"] = lead.name or vals.get("name")
-
-        # Fill phone/email from partner if exists
-        if "partner_id" in vals:
-            partner = self.env["res.partner"].browse(vals["partner_id"])
-            vals["phone"] = partner.phone or vals.get("phone")
-            vals["email"] = partner.email or vals.get("email")
-        # Fallback: no partner, but lead exists
-        elif lead:
-            vals["phone"] = lead.phone or vals.get("phone")
-            vals["email"] = lead.email_from or vals.get("email")
-
-        return super().write(vals)
-
-    # -------- Onchange handlers CRM and Partner data --------
 
     def action_open_related_crm_lead(self):
         """Open the related CRM Lead in a form view"""
@@ -238,7 +189,7 @@ class CustomerSuccess(models.Model):
         all_stages = self.env['customer.success.stage'].search([], order='sequence asc')
         stage_ids = [s.id for s in all_stages]
         for rec in self:
-            if rec.stage_id and rec.stage_id.name.lower() == 'won':
+            if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
                 rec.health_percentage = 100
             elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
                 rec.health_percentage = 0
@@ -284,9 +235,9 @@ class CustomerSuccess(models.Model):
         return self.env['customer.success.stage'].search([('name', '=', name)], limit=1)
 
     def action_set_won(self):
-        won = self._get_stage_by_name('Won')
+        won = self._get_stage_by_name('Achieved')
         if not won:
-            raise UserError("Stage 'Won' not found. Please create a stage named 'Won'.")
+            raise UserError("Stage 'Achieved' not found. Please create a stage marked as 'Achieved'.")
         for rec in self:
             rec.stage_id = won
             rec.active = True
@@ -296,7 +247,7 @@ class CustomerSuccess(models.Model):
         """Open wizard instead of directly setting Lost stage."""
         lost = self._get_stage_by_name('Lost')
         if not lost:
-            raise UserError("Stage 'Lost' not found. Please create a stage named 'Lost'.")
+            raise UserError("Stage 'Lost' not found. Please create a stage marked as 'Lost'.")
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
@@ -310,6 +261,7 @@ class CustomerSuccess(models.Model):
             'context': {'default_customer_success_id': self.id},
         }
 
+
     @api.depends('stage_id', 'lost_reason_id')
     def _compute_lost_reason_label(self):
         for rec in self:
@@ -317,6 +269,7 @@ class CustomerSuccess(models.Model):
                 rec.lost_reason_label = f"Lost Reason: {rec.lost_reason_id.name}"
             else:
                 rec.lost_reason_label = False
+
 
     def toggle_active(self):
         for rec in self:

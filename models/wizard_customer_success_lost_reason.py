@@ -30,7 +30,6 @@ class CustomerSuccessLostReasonWizard(models.TransientModel):
             self.customer_success_id.write({
                 'stage_id': lost_stage.id if lost_stage else False,
                 'lost_reason_id': self.reason.id,
-                'probability': 0,
             })
 
         # Close wizard
