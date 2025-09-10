@@ -21,9 +21,13 @@
             <form string="Stage">
                 <sheet>
                     <group>
-                        <field name="name"/>
+                        <field name="name" readonly="is_won or is_lost"/>
                         <field name="sequence"/>
                         <field name="fold"/>
+                    </group>
+                    <group string="Stage Type">
+                        <field name="is_won"/>
+                        <field name="is_lost"/>
                     </group>
                 </sheet>
             </form>
