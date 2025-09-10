@@ -120,12 +120,6 @@
         invisible="not active or stage_id.name == 'Achieved' or health_percentage == 100"/>
         <button name="action_set_lost" string="Lost" type="object" class="btn-danger"
         invisible="not active or stage_id.name == 'Lost' or health_percentage == 0"/>
-        <button name="action_open_related_crm_lead"
-                string="Open Related CRM Lead"
-                type="object"
-                class="o_form_button_custom btn btn-outline-primary"
-                invisible="related_crm_lead_id == False"/>
-
         <button name="action_set_lost"
         string="Set Lost Reason"
         type="object"
@@ -142,6 +136,15 @@
       </header>
 
       <sheet>
+          <div class="oe_button_box" name="button_box">
+             <button name="action_open_related_crm_lead"
+                string="Related CRM Lead"
+                type="object"
+                icon="fa-briefcase"
+                class="oe_stat_button"
+                invisible="related_crm_lead_id == False"/>
+          </div>
+
           <widget name="web_ribbon" title="Lost" bg_color="text-bg-danger" invisible="health_percentage != 0"/>
                <widget name="web_ribbon" title="Achieved" invisible="health_percentage != 100"/>
         <!-- Headline Title -->
