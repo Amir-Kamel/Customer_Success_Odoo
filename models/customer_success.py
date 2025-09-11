@@ -11,7 +11,7 @@ class CustomerSuccess(models.Model):
     _order = 'sequence_number, id'
 
     # Core fields
-    name = fields.Char(string="Title", required=True, tracking=True)
+    name = fields.Char(string="Title", required=True)
     partner_id = fields.Many2one('res.partner', string="Customer", tracking=True)
 
     # Stage + grouping
@@ -19,13 +19,14 @@ class CustomerSuccess(models.Model):
         'customer.success.stage', string='Stage',
         group_expand='_read_group_stage_ids', tracking=True, ondelete='cascade'
     )
-    team_id = fields.Many2one('customer.success.team', string="Team")
+    team_id = fields.Many2one('customer.success.team', string="Team", tracking=True)
 
 
     assigned_user_id = fields.Many2one(
         'res.users',
         string="Success Partner",
         domain="[('id', 'in', team_user_ids)]",
+        tracking=True
     )
     phone = fields.Char(string="Phone")
     email = fields.Char(string="Email")
@@ -52,13 +53,13 @@ class CustomerSuccess(models.Model):
     # NEW: lost reason
     lost_reason_id = fields.Many2one(
         'customer.success.lost.reason',
-        string="Lost Reason",
+        string="Churned Reason",
         readonly=True,
         copy=False
     )
 
     lost_reason_label = fields.Char(
-        string="Lost Reason Label",
+        string="Churned Reason Label",
         compute='_compute_lost_reason_label'
     )
 
@@ -97,28 +98,29 @@ class CustomerSuccess(models.Model):
         domain=[('res_model', '=', 'customer.success')],
     )
 
-    has_call_activity = fields.Boolean(
-        string="Has Call Activity", compute="_compute_activity_flags"
-    )
-    has_email_activity = fields.Boolean(
-        string="Has Email Activity", compute="_compute_activity_flags"
-    )
 
-    # -------------------------
-    # Onchange & Constraints
-    # -------------------------
 
-    @api.depends("activity_ids.activity_type_id")
-    def _compute_activity_flags(self):
-        for rec in self:
-            rec.has_call_activity = any(
-                a.activity_type_id and a.activity_type_id.default_type == "call"
-                for a in rec.activity_ids
+
+    @api.model
+    def default_get(self, fields):
+        res = super().default_get(fields)
+
+        # Get all stages ordered by sequence
+        stages = self.env['customer.success.stage'].search([], order='sequence asc')
+
+        # Pick the first stage that is NOT Won/Lost
+        normal_stage = next((s for s in stages if not s.is_won and not s.is_lost), False)
+
+        if normal_stage:
+            res['stage_id'] = normal_stage.id
+        else:
+            raise UserError(
+                "Cannot create a new Customer Success record because "
+                "there are no normal stages (other than Achieved/Churned). "
+                "Please create at least one normal stage first."
             )
-            rec.has_email_activity = any(
-                a.activity_type_id and a.activity_type_id.default_type == "email"
-                for a in rec.activity_ids
-            )
+
+        return res
 
     # -------- Onchange handlers CRM and Partner data --------
 
@@ -185,17 +187,26 @@ class CustomerSuccess(models.Model):
 
     @api.depends('stage_id')
     def _compute_health_percentage(self):
-        """Health = 100% if Achieved, 0% if Lost, else relative to pipeline position."""
+        """Compute health percentage:
+           - 100% for Achieved (Won)
+           - 0% for Churned (Lost)
+           - Relative for normal stages, capped below 100
+        """
         all_stages = self.env['customer.success.stage'].search([], order='sequence asc')
-        stage_ids = [s.id for s in all_stages]
+        normal_stages = [s for s in all_stages if not s.is_won and not s.is_lost]
+
         for rec in self:
-            if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
-                rec.health_percentage = 100
-            elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
-                rec.health_percentage = 0
-            elif rec.stage_id and rec.stage_id.id in stage_ids and len(stage_ids) > 0:
-                stage_index = stage_ids.index(rec.stage_id.id)
-                rec.health_percentage = int((stage_index + 1) / len(stage_ids) * 100)
+            if rec.stage_id:
+                if rec.stage_id.is_won:
+                    rec.health_percentage = 100
+                elif rec.stage_id.is_lost:
+                    rec.health_percentage = 0
+                elif rec.stage_id in normal_stages:
+                    # Relative progress: divide by (total normal stages + 1) to avoid 100%
+                    stage_index = normal_stages.index(rec.stage_id)
+                    rec.health_percentage = int((stage_index + 1) / (len(normal_stages) + 1) * 100)
+                else:
+                    rec.health_percentage = 0
             else:
                 rec.health_percentage = 0
 
@@ -204,7 +215,7 @@ class CustomerSuccess(models.Model):
         for rec in self:
             if rec.stage_id and rec.stage_id.name.lower() == 'achieved':
                 rec.flag_color = 'green'
-            elif rec.stage_id and rec.stage_id.name.lower() == 'lost':
+            elif rec.stage_id and rec.stage_id.name.lower() == 'churned':
                 rec.flag_color = 'red'
             else:
                 rec.flag_color = 'none'
@@ -234,6 +245,20 @@ class CustomerSuccess(models.Model):
     def _get_stage_by_name(self, name):
         return self.env['customer.success.stage'].search([('name', '=', name)], limit=1)
 
+    def action_show_success_animation(self):
+        self.ensure_one()
+        # Your custom message
+        message = "🎉 Great! You achieved a new success story! 🌈"
+
+        return {
+            'effect': {
+                'fadeout': 'slow',
+                'message': message,
+                'img_url': '/web/static/img/smile.svg',  # optional: you can replace with a team/user image
+                'type': 'rainbow_man',  # can stay as 'rainbow_man' or 'success_animation'
+            }
+        }
+
     def action_set_won(self):
         won = self._get_stage_by_name('Achieved')
         if not won:
@@ -241,17 +266,17 @@ class CustomerSuccess(models.Model):
         for rec in self:
             rec.stage_id = won
             rec.active = True
-        return True
+        return self.action_show_success_animation()
 
     def action_set_lost(self):
         """Open wizard instead of directly setting Lost stage."""
-        lost = self._get_stage_by_name('Lost')
+        lost = self._get_stage_by_name('Churned')
         if not lost:
-            raise UserError("Stage 'Lost' not found. Please create a stage marked as 'Lost'.")
+            raise UserError("Stage 'Churned' not found. Please create a stage marked as 'Churned'.")
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Confirm Lost',
+            'name': 'Confirm Churned',
             'res_model': 'customer.success.lost.reason.wizard',
             'view_mode': 'form',
             'view_id': self.env.ref(
@@ -265,8 +290,8 @@ class CustomerSuccess(models.Model):
     @api.depends('stage_id', 'lost_reason_id')
     def _compute_lost_reason_label(self):
         for rec in self:
-            if rec.stage_id.name == 'Lost' and rec.lost_reason_id:
-                rec.lost_reason_label = f"Lost Reason: {rec.lost_reason_id.name}"
+            if rec.stage_id.name == 'Churned' and rec.lost_reason_id:
+                rec.lost_reason_label = f"Churned Reason: {rec.lost_reason_id.name}"
             else:
                 rec.lost_reason_label = False
 

@@ -1,70 +1,79 @@
-# Customer Success Module – Enhancements 
+# 🚀 Customer Success Module  - Enhancements #2
+
+## 📌 Completed Enhancements  (Already Done)
+
+✅ **Menu Renaming** → Changed **Pipeline** menu name to **Success Journeys**.  
+
+✅ **Kanban Record Creation Fix** → New records created from the Kanban *New* button now correctly appear in the **first available stage** (even if only *Achieved* and *Churned* stages exist).  
+
+✅ **Stage Renaming** → Renamed **Lost** stage to **Churned**.  
+
+✅ **Adding Rainbow Success Animation** → When pressing the **Achieved green Button** appeared in record details page.
+
+✅ **Fixed Achieved Health Logic** → Made 100% for only for **Achieved stage** not depend on the last stage in sequence.
+
+✅ **Added Chatter Successfully** → chatters appeared in bottom of **Record Details Page** with good view.
 
 ---
 
-## 📌 Features & Enhancements  
+## 📌 New Enhancements  
 
-### 1. Stages  
-- Inline form view for stages (similar to Tags – no separate form page).  
-- Add checkboxes for:  
-  - **Achieved stage**  
-  - **Lost stage**  
-- Only one option (Achieved or Lost) can be selected per stage.  
+### 1️⃣ CRM → Customer Success Integration  
 
-### 2. Demo Data  
-- Provide demo data automatically upon app installation.  
+🔹 When a **CRM Lead** moves to the **Won** stage, automatically create a **new Customer Success record**.  
 
-### 3. Automatic Field Population  
-- **Phone** and **Email** are auto-filled from the linked **Partner (`partner_id`)**.  
-- **Title** and **Customer** are auto-filled from the related **CRM Lead**.  
-- If filled automatically → field becomes **read-only**.  
-- If no data exists → field remains **editable**.  
+🔹 Ensure the **Related CRM field** in Customer Success is automatically linked to the corresponding Lead.  
 
-### 4. Record Details Page Redesign  
-- Two-column layout.  
-- Page headline = **Title only** (remove extra header).  
-- **Left column:** Customer, Mobile, Email, Health, Renewable Date.  
-- **Right column:** Team, Success Partner, Related CRM, Tags.  
+⚡ Once this field is set, other dependent fields (**Title, Partner, Phone, Email**) will auto-populate automatically (using the existing logic already handled).  
 
-### 5. Kanban View & Activity Tracking  
-- Inherit `mail.thread` and `mail.activity.mixin`.  
-- Add activity tracking icons:  
-  - ⏰ for activities  
-  - ✉️ for emails  
-- Show icons in Kanban cards + Record Details page.  
-- Remove field labels in Kanban (display only values, e.g., show “Amir Kamel” instead of “Customer: Amir Kamel”).  
 
-### 6. CRM Lead Integration  
-- Related CRM Lead shown as a **smart button** (center of page).  
-- Users can only **read** the CRM record (no edit/update/delete/unlink).  
-- When a CRM record reaches **Won stage**:  
-  - Automatically create a new record in the **first Customer Success stage**.  
-  - Auto-fill Title, Partner, Phone, Email.  
-  - Notes visible but not editable.  
+---
 
-### 7. Stage-Based Actions & Buttons  
-- If at least one **Achieved** stage & one **Lost** stage exist → show two buttons:  
-  - ✅ Achieved (green)  
-  - ❌ Lost (red)  
-- If only Achieved stages exist → show **Achieved button only**.  
-- If only Lost stages exist → show **Lost button only**.  
-- Remove other default stage buttons.  
+### 2️⃣ Dashboard  
 
-### 8. Behavior on Achieved Stage  
-- Health = **100%**.  
-- Show **green flag widget** in top-right corner.  
-- Trigger **success animation** (similar to CRM).  
-- Hide stage action buttons (based on config).  
+A new dedicated **Dashboard menu** will be created.  
 
-### 9. Behavior on Lost Stage  
-- Health = **0%**.  
-- Show **red flag widget** in top-right corner.  
-- Open **popup window** asking for **reason of loss**.  
-- After confirmation:  
-  - Save reason as read-only **Lost Reason** field in details page.  
-  - Hide stage action buttons (based on config).  
+#### 🖼️ Layout  
+Dashboard divided into **two vertical sections**.  
 
-### 10. Dashboard (Postponed)  
-- Dashboard feature planned but **postponed for now**.  
+#### 🔼 Upper Section (Analytics Cards)  
+Displays **three horizontal cards**:  
+- 📊 **Average Health (Global)** → Shows the overall average health score across all pipeline records.  
+- 🏆 **Top 5 Customers (Highest Health)** → Shows top 5 customers with the highest average health (across their records).  
+- ⚠️ **Bottom 5 Customers (Lowest Health)** → Same as above but for the lowest averages.  
+
+💡 Cards displayed with **animated health bars or circular progress indicators**.  
+
+#### 🔽 Lower Section (Customer Cards)  
+Cards similar to the **Contacts module** in Odoo, each showing:  
+- 👤 Customer Avatar  
+- 🏷️ Name / Partner ID  
+- 📞 Phone  
+- 📧 Email  
+- 📊 Average Health (across all pipeline records)  
+
+✅ **Rules**:  
+- If a Partner already exists, don’t duplicate → update their average health.  
+- New records for the same Partner automatically update their health average.  
+
+#### 🔗 Interactions  
+- Clicking a Customer Card should ideally:  
+  - 🔎 Redirect back to the **Customer Success Pipeline**, pre-filtered to show only that Partner’s records.  
+  - Alternative: open a **dedicated filtered view** with a return button.  
+
+---
+
+### 3️⃣ Technical Notes 🛠️  
+
+🔹 Create a new model to store **Dashboard Customer Data**:  
+- 🏷️ Name  
+- 📞 Phone  
+- 📧 Email  
+- 📊 Average Health Score  
+- 🔗 Relation (Many2many) with Customer Success records  
+
+🔹 Use a **hash map (dictionary)** for averages:  
+- **Key** = Partner ID  
+- **Value** = Average Health score across their records  
 
 ---

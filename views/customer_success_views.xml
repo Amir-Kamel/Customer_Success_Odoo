@@ -68,12 +68,7 @@
                 <!-- Left: Priority -->
                 <div class="d-flex align-items-center" style="gap:8px;">
                     <field name="priority" widget="priority"/>
-                    <t t-if="record.has_call_activity">
-                        <span title="Call Log">📞</span>
-                    </t>
-                    <t t-if="record.has_email_activity">
-                        <span title="Email">✉️</span>
-                    </t>
+
                     <field name="activity_ids" widget="kanban_activity" options="{'display_email': True}"/>
                 </div>
 
@@ -118,8 +113,8 @@
       <header>
         <button name="action_set_won" string="Achieved" type="object" class="btn-success"
         invisible="not active or stage_id.name == 'Achieved' or health_percentage == 100"/>
-        <button name="action_set_lost" string="Lost" type="object" class="btn-danger"
-        invisible="not active or stage_id.name == 'Lost' or health_percentage == 0"/>
+        <button name="action_set_lost" string="Churned" type="object" class="btn-danger"
+        invisible="not active or stage_id.name == 'Churned' or health_percentage == 0"/>
         <button name="action_set_lost"
         string="Set Lost Reason"
         type="object"
@@ -145,7 +140,7 @@
                 invisible="related_crm_lead_id == False"/>
           </div>
 
-          <widget name="web_ribbon" title="Lost" bg_color="text-bg-danger" invisible="health_percentage != 0"/>
+          <widget name="web_ribbon" title="Churned" bg_color="text-bg-danger" invisible="health_percentage != 0"/>
                <widget name="web_ribbon" title="Achieved" invisible="health_percentage != 100"/>
         <!-- Headline Title -->
         <div class="oe_title">
@@ -183,11 +178,7 @@
           </page>
         </notebook>
       </sheet>
-            <div class="oe_chatter">
-            <field name="message_follower_ids" widget="mail_followers"/>
-            <field name="activity_ids" widget="mail_activity"/>
-            <field name="message_ids" widget="mail_thread"/>
-        </div>
+                    <chatter reload_on_post="True"/>
 
     </form>
   </field>
@@ -205,7 +196,7 @@
         <field name="stage_id"/>
         <field name="assigned_user_id"/>
         <filter string="Achieved" name="filter_won" domain="[('stage_id.name','=','Achieved')]"/>
-        <filter string="Lost" name="filter_lost" domain="[('stage_id.name','=','Lost')]"/>
+        <filter string="Churned" name="filter_lost" domain="[('stage_id.name','=','Churned')]"/>
         <filter string="Proposition" name="filter_prop" domain="[('stage_id.name','=','Proposition')]"/>
       </search>
     </field>

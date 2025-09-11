@@ -8,7 +8,7 @@ class CustomerSuccessLostReasonWizard(models.TransientModel):
     # The reason chosen from predefined reasons
     reason = fields.Many2one(
         'customer.success.lost.reason',
-        string="Reason",
+        string="Churned Reason",
         required=True
     )
 
@@ -24,7 +24,7 @@ class CustomerSuccessLostReasonWizard(models.TransientModel):
         self.ensure_one()
         if self.customer_success_id:
             # Get Lost stage
-            lost_stage = self.env['customer.success.stage'].search([('name', '=', 'Lost')], limit=1)
+            lost_stage = self.env['customer.success.stage'].search([('name', '=', 'Churned')], limit=1)
 
             # Write changes to the record
             self.customer_success_id.write({

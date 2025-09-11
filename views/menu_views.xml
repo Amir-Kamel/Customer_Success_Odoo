@@ -7,7 +7,7 @@
 
     <!-- Pipeline menu (formerly Records) -->
     <menuitem id="menu_customer_success_pipeline"
-              name="Pipeline"
+              name="Success Journeys"
               parent="menu_customer_success_root"
               action="action_customer_success"/>
 

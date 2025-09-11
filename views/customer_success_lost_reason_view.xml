@@ -4,7 +4,7 @@
         <field name="name">customer.success.lost.reason.wizard.form</field>
         <field name="model">customer.success.lost.reason.wizard</field>
         <field name="arch" type="xml">
-            <form string="Confirm Lost">
+            <form string="Confirm Churned">
                 <group>
                     <field name="reason"/>
                 </group>
@@ -23,7 +23,7 @@
 
     <!-- Wizard Action -->
     <record id="action_customer_success_lost_reason_wizard" model="ir.actions.act_window">
-        <field name="name">Confirm Lost</field>
+        <field name="name">Confirm Churned</field>
         <field name="res_model">customer.success.lost.reason.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

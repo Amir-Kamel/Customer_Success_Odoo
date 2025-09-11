@@ -12,7 +12,7 @@ class CustomerSuccessStage(models.Model):
 
 
     is_won = fields.Boolean(string="Achieved")
-    is_lost = fields.Boolean(string="Lost")
+    is_lost = fields.Boolean(string="Churned")
 
 
 
@@ -25,14 +25,14 @@ class CustomerSuccessStage(models.Model):
             if vals.get('is_won'):
                 vals['name'] = 'Achieved'
             elif vals.get('is_lost'):
-                vals['name'] = 'Lost'
+                vals['name'] = 'Churned'
         return super().create(vals_list)
 
     def write(self, vals):
         if vals.get('is_won'):
             vals['name'] = 'Achieved'
         elif vals.get('is_lost'):
-            vals['name'] = 'Lost'
+            vals['name'] = 'Churned'
         return super().write(vals)
 
 
@@ -50,7 +50,7 @@ class CustomerSuccessStage(models.Model):
                 return {
                     'warning': {
                         'title': "Invalid Selection",
-                        'message': "You cannot select both Won and Lost at the same time."
+                        'message': "You cannot select both Achieved and Churned at the same time."
                     }
                 }
 
@@ -58,7 +58,7 @@ class CustomerSuccessStage(models.Model):
             if stage.is_won:
                 stage.name = "Achieved"
             elif stage.is_lost:
-                stage.name = "Lost"
+                stage.name = "Churned"
             # else: leave the name editable, user can remove checkboxes
 
     # -----------------------------
@@ -74,7 +74,7 @@ class CustomerSuccessStage(models.Model):
             if stage.is_lost:
                 existing_lost = self.search([('is_lost', '=', True), ('id', '!=', stage.id)])
                 if existing_lost:
-                    raise UserError("There is already a stage marked as 'Lost'. You cannot create another one.")
+                    raise UserError("There is already a stage marked as 'Churned'. You cannot create another one.")
 
 
     # -----------------------------
@@ -83,10 +83,10 @@ class CustomerSuccessStage(models.Model):
     @api.constrains('name')
     def _prevent_manual_won_lost(self):
         for stage in self:
-            if stage.name.strip().capitalize() in ['Achieved', 'Lost']:
+            if stage.name.strip().capitalize() in ['Achieved', 'Churned']:
                 # If checkbox is not set but name is Won/Lost → block it
                 if not stage.is_won and not stage.is_lost:
-                    raise UserError("You cannot manually name a stage 'Achieved' or 'Lost'. Use the checkboxes instead.")
+                    raise UserError("You cannot manually name a stage 'Achieved' or 'Churned'. Use the checkboxes instead.")
 
     # -----------------------------
     # Onchange: Capitalize first letter of each word
