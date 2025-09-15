@@ -15,6 +15,9 @@
         'views/customer_success_team_views.xml',
         'views/customer_success_views.xml',
         'views/customer_success_tags_views.xml',
+        'views/customer_success_dashboard_page_views.xml',
+        'views/customer_success_dashboard_analytics_views.xml',
+        'views/customer_success_dashboard_contacts_views.xml',
         'views/menu_views.xml',
 
     ],
