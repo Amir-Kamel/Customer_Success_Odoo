@@ -6,6 +6,8 @@ access_csm_tag,access_csm_tag,model_csm_tag,,1,1,1,1
 access_customer_success_team,access_customer_success_team,model_customer_success_team,,1,1,1,1
 access_wizard_customer_success_lost_reason_id,access_wizard_customer_success_lost_reason_name,model_customer_success_lost_reason_wizard,,1,1,1,1
 access_customer_success_lost_reason_id,access_customer_success_lost_reason_name,model_customer_success_lost_reason,,1,1,1,1
+access_customer_success_user,access_customer_success_user,model_customer_success,base.group_user,1,1,1,1
+
 
 
 
