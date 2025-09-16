@@ -11,6 +11,7 @@
               parent="menu_customer_success_root"
               action="action_customer_success"/>
 
+
     <!-- Configurations parent submenu -->
     <menuitem id="menu_customer_success_configurations"
               name="Configurations"
