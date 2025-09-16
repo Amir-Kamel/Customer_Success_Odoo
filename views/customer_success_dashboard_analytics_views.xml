@@ -1,0 +1,91 @@
+<odoo>
+    <record id="view_customer_success_analytics_kanban" model="ir.ui.view">
+        <field name="name">customer.success.dashboard.analytics.kanban</field>
+        <field name="model">customer.success.dashboard.analytics</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard o_kanban_customer_success_analytics" create="false" edit="false" delete="false">
+                <field name="average_health"/>
+                <field name="top_customers_data"/>
+                <field name="bottom_customers_data"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="o_kanban_card o_analytics_card"
+                             t-att-onclick="'event.stopPropagation();'"
+                             style="display:flex; justify-content:center; gap:20px; flex-wrap:nowrap; align-items:flex-start;
+                                    background:#fff; padding:18px; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.06);
+                                    width:100%; box-sizing:border-box; overflow-x:auto;">
+
+                            <div style="flex:1; min-width:240px; max-width:360px; text-align:center;">
+                                <h4 style="margin:0 0 8px;">📊 Global Average Journey</h4>
+                                <div style="font-size:28px; font-weight:700; margin-bottom:6px;">
+                                    <t t-esc="(record.average_health.raw_value || 0).toFixed(1)"/>%
+                                </div>
+                                <t t-set="pct_int" t-value="Math.round(record.average_health.raw_value || 0)"/>
+                                <t t-set="bar_color"
+                                   t-value="pct_int &lt;= 25 ? '#dc3545' : (pct_int &lt;= 50 ? '#ffc107' : (pct_int &lt;= 75 ? '#0d6efd' : '#198754'))"/>
+                                <div class="progress mt-2" style="height:14px; border-radius:8px; overflow:hidden; margin-top:8px;">
+                                    <div role="progressbar"
+                                         t-att-style="'width: ' + pct_int + '%; background-color: ' + bar_color + ';'"
+                                         t-att-aria-valuenow="pct_int" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="flex:0 0 32%; min-width:220px; max-width:360px;">
+                                <h4 style="margin:0 0 8px;">🏆 Top 5 Clients</h4>
+                                <t t-set="parsed_top" t-value="JSON.parse(record.top_customers_data.raw_value || '[]')"/>
+                                <t t-foreach="parsed_top" t-as="cust">
+                                    <div style="margin-bottom:8px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:72%">
+                                                <t t-esc="cust.name"/>
+                                            </span>
+                                            <span style="font-weight:600; margin-left:8px;">
+                                                <t t-esc="Math.round(cust.health)"/>%
+                                            </span>
+                                        </div>
+                                        <t t-set="item_pct" t-value="Math.round(cust.health)"/>
+                                        <t t-set="bar_color_item"
+                                           t-value="item_pct &lt;= 25 ? '#dc3545' : (item_pct &lt;= 50 ? '#ffc107' : (item_pct &lt;= 75 ? '#0d6efd' : '#198754'))"/>
+                                        <div class="progress" style="height:8px; border-radius:6px; overflow:hidden; margin-top:4px;">
+                                            <div role="progressbar"
+                                                 t-att-style="'width: ' + item_pct + '%; background-color: ' + bar_color_item + ';'"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <div style="flex:0 0 32%; min-width:220px; max-width:360px;">
+                                <h4 style="margin:0 0 8px;">⚠️ Bottom 5 Clients</h4>
+                                <t t-set="parsed_bottom" t-value="JSON.parse(record.bottom_customers_data.raw_value || '[]')"/>
+                                <t t-foreach="parsed_bottom" t-as="cust">
+                                    <div style="margin-bottom:8px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:72%">
+                                                <t t-esc="cust.name"/>
+                                            </span>
+                                            <span style="font-weight:600; margin-left:8px;">
+                                                <t t-esc="Math.round(cust.health)"/>%
+                                            </span>
+                                        </div>
+                                        <t t-set="item_pct2" t-value="Math.round(cust.health)"/>
+                                        <t t-set="bar_color_item2"
+                                           t-value="item_pct2 &lt;= 25 ? '#dc3545' : (item_pct2 &lt;= 50 ? '#ffc107' : (item_pct2 &lt;= 75 ? '#0d6efd' : '#198754'))"/>
+                                        <div class="progress" style="height:8px; border-radius:6px; overflow:hidden; margin-top:4px;">
+                                            <div role="progressbar"
+                                                 t-att-style="'width: ' + item_pct2 + '%; background-color: ' + bar_color_item2 + ';'"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+</odoo>
