@@ -4,12 +4,12 @@ class CrmLead(models.Model):
     _inherit = "crm.lead"
 
     def _get_customer_success_stage(self):
-        stage_record = self.env.ref('Customer_Success.customer_success_stage_achieved', raise_if_not_found=False)
+        stage_record = self.env.ref('Customer_Success.customer_success_stage_welcome', raise_if_not_found=False)
         if not stage_record:
             stage_model = self.env['customer.success.stage']
-            stage_record = stage_model.search([('name', '=', 'Achieved')], limit=1)
+            stage_record = stage_model.search([('name', '=', 'On Boarding')], limit=1)
             if not stage_record:
-                stage_record = stage_model.create({'name': 'Achieved'})
+                stage_record = stage_model.create({'name': 'On Boarding'})
         return stage_record
 
     def _get_customer_success_initial_stage(self):

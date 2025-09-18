@@ -18,7 +18,7 @@
                             <div style="flex:1; min-width:240px; max-width:360px; text-align:center;">
                                 <h4 style="margin:0 0 8px;">📊 Global Average Journey</h4>
                                 <div style="font-size:28px; font-weight:700; margin-bottom:6px;">
-                                    <t t-esc="(record.average_health.raw_value || 0).toFixed(1)"/>%
+                                    <t t-esc="record.average_health.raw_value ? ((record.average_health.raw_value % 1 === 0) ? record.average_health.raw_value : record.average_health.raw_value.toFixed(1)) : 0"/>%
                                 </div>
                                 <t t-set="pct_int" t-value="Math.round(record.average_health.raw_value || 0)"/>
                                 <t t-set="bar_color"
@@ -41,7 +41,7 @@
                                                 <t t-esc="cust.name"/>
                                             </span>
                                             <span style="font-weight:600; margin-left:8px;">
-                                                <t t-esc="Math.round(cust.health)"/>%
+                                                <t t-esc="cust.health ? ((cust.health % 1 === 0) ? cust.health : cust.health.toFixed(1)) : 0"/>%
                                             </span>
                                         </div>
                                         <t t-set="item_pct" t-value="Math.round(cust.health)"/>
@@ -67,7 +67,7 @@
                                                 <t t-esc="cust.name"/>
                                             </span>
                                             <span style="font-weight:600; margin-left:8px;">
-                                                <t t-esc="Math.round(cust.health)"/>%
+                                                <t t-esc="cust.health ? ((cust.health % 1 === 0) ? cust.health : cust.health.toFixed(1)) : 0"/>%
                                             </span>
                                         </div>
                                         <t t-set="item_pct2" t-value="Math.round(cust.health)"/>

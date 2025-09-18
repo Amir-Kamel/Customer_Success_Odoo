@@ -12,7 +12,7 @@ class CustomerSuccess(models.Model):
 
     # Core fields
     name = fields.Char(string="Title", required=True)
-    partner_id = fields.Many2one('res.partner', string="Customer", tracking=True)
+    partner_id = fields.Many2one('res.partner', string="Client", tracking=True)
 
     # Stage + grouping
     stage_id = fields.Many2one(
@@ -44,8 +44,9 @@ class CustomerSuccess(models.Model):
     sequence_number = fields.Integer(string="Sequence")
 
     # Health bar logic
-    health_percentage = fields.Integer(
+    health_percentage = fields.Float(
         string="Health %",
+        digits=(3, 1),
         compute='_compute_health_percentage',
         store=False
     )
@@ -204,7 +205,10 @@ class CustomerSuccess(models.Model):
                 elif rec.stage_id in normal_stages:
                     # Relative progress: divide by (total normal stages + 1) to avoid 100%
                     stage_index = normal_stages.index(rec.stage_id)
-                    rec.health_percentage = int((stage_index + 1) / (len(normal_stages) + 1) * 100)
+                    rec.health_percentage = round(
+                        (stage_index + 1) / (len(normal_stages) + 1) * 100, 1
+                    )
+
                 else:
                     rec.health_percentage = 0
             else:

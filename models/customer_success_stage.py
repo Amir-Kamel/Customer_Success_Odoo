@@ -26,6 +26,9 @@ class CustomerSuccessStage(models.Model):
                 vals['name'] = 'Achieved'
             elif vals.get('is_lost'):
                 vals['name'] = 'Churned'
+            elif vals.get('name'):
+                # Apply capitalization only if not forced by won/lost
+                vals['name'] = " ".join([w.capitalize() for w in vals['name'].split()])
         return super().create(vals_list)
 
     def write(self, vals):
@@ -33,6 +36,9 @@ class CustomerSuccessStage(models.Model):
             vals['name'] = 'Achieved'
         elif vals.get('is_lost'):
             vals['name'] = 'Churned'
+        elif vals.get('name'):
+            # Apply capitalization only if not forced by won/lost
+            vals['name'] = " ".join([w.capitalize() for w in vals['name'].split()])
         return super().write(vals)
 
 
@@ -87,12 +93,3 @@ class CustomerSuccessStage(models.Model):
                 # If checkbox is not set but name is Won/Lost → block it
                 if not stage.is_won and not stage.is_lost:
                     raise UserError("You cannot manually name a stage 'Achieved' or 'Churned'. Use the checkboxes instead.")
-
-    # -----------------------------
-    # Onchange: Capitalize first letter of each word
-    # -----------------------------
-    @api.onchange('name')
-    def _onchange_name_capitalize(self):
-        for stage in self:
-            if stage.name:
-                stage.name = " ".join([w.capitalize() for w in stage.name.split()])

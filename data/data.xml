@@ -1,0 +1,31 @@
+<odoo noupdate="1">
+
+                <record id="stage_atrisk" model="customer.success.stage">
+        <field name="name">At Risk</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="stage_onboarding" model="customer.success.stage">
+        <field name="name">On Boarding</field>
+        <field name="sequence">2</field>
+    </record>
+
+        <record id="stage_active" model="customer.success.stage">
+        <field name="name">Active</field>
+        <field name="sequence">3</field>
+    </record>
+
+
+    <record id="stage_achieved" model="customer.success.stage">
+                        <field name="name"> Achieved </field>
+                        <field name="sequence"> 10 </field>
+                        <field name="is_won"> 1 </field>
+    </record>
+
+        <record id="stage_churned" model="customer.success.stage">
+                        <field name="name"> Churned </field>
+                        <field name="sequence"> 11 </field>
+                        <field name="is_lost"> 1 </field>
+    </record>
+
+</odoo>
