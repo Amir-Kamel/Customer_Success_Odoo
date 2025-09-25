@@ -1,59 +1,69 @@
-# 🚀 Customer Success & Employee Module Enhancements #3
+# 🚀 Customer Success, CRM & Time Off Module Enhancements #4
 
 ---
 
-## 🔎 Search View Grouping (✅ Done)
+##### 🆕 Time Off App Enhancements (Assigned to **Amir**)
 
-- Added **default group-by options** in the Customer Success search view:
-  - Tags
-  - Team
-  - Partners
-  - Assigned User
+###### ✅ Urgent
+- **Separated Menus for Time Off Types**  
+  - Split **Configurations → Time Off Types** into **two menus**:  
+    - **Absence Types**  
+    - **Work Time Types**  
+  - Rename menus based on type.  
+- **New Record Behavior**  
+  - When pressing **New** from Absence menu → auto-fill field as Absence.  
+  - When pressing **New** from Work Time menu → auto-fill field as Work Time.  
 
----
-
-## 🔒 Security Handling (Assigned to **Omar**)
-
-Implement a **3-level security system**:
-
-- **Assigned User**
-  - Can view & edit **only their assigned records**.
-  - ❌ Cannot delete any records.
-- **Team Leader**
-  - Can view, edit, and delete records **within their own team only**.
-- **Admin**
-  - Full access to **all teams, records, and actions**.
+###### ⚠️ Optional
+- **Double Approval Check**  
+  - If a user in the approvers list presses **Approve** or **Refuse** more than once → raise an error.  
+  - Implement this check via **model function**.  
+- **Restricted Validation for Time Off Types**  
+  - Only **Admins** and **Time Officers** can change status to **Validate1**.  
+  - Ensure it appears only for them.  
 
 ---
 
-## ⚠️ Warning Notifications on Stage Removal (Assigned to **Mahmoud**)
+##### ⏱️ Time Approval App Enhancements (Assigned to **Amir**)
 
-- When a record is **removed from the "Won" stage in CRM**, a **warning message** should be sent in the **Customer Success module**.
-- The warning message should include the **record title** that was removed.
-- Implement this using **Activities**, as discussed in the meeting.
+> App Reference: [OHRMS Holidays Approval](https://apps.odoo.com/apps/modules/18.0/ohrms_holidays_approval)
+
+###### ✅ Urgent
+- **Filter by Time Off Type**  
+  - Filter displayed records in **time off field** by type:  
+    - Absence  
+    - Work Time  
+  - Display either:  
+    - Type in brackets beside each entry, **OR**  
+    - Two separate fields (Absence-only, Work Time-only).  
+- **Separate Approval Creation**  
+  - Create **two approval types**:  
+    - One for **Absence**  
+    - One for **Work Time**  
 
 ---
 
-## 🆕 Employee & Time Off Module Enhancements (Assigned to **Amir**)
+##### 📊 Customer Success App Enhancements
 
-**Objective**: Allow multiple approvers for employee time-off requests.
+###### ⚠️ Optional
+- **Dashboard Analytics UI/UX**  
+  - Fix empty analytics boxes → show a placeholder or clean UI when no data.  
+- **Team Leader Restricted Dashboard**  
+  - Each Team Leader can only see **their clients** and **record counts**.  
 
-### Current Behavior
-- Field under **Work Information → Time Off** is `many2one` (single approver).
+---
 
-### New Requirement
-- Change to `many2many` → multiple approvers must **all approve** before leave is granted.
-- Approval must require **all selected approvers**, not just one or some.
+##### 📈 CRM App Enhancements (Assigned to **Omar**)
 
-### Implementation Ideas
-1. **Inheritance Approach**
-   - Replace the type of field with a `many2many`.
-   - Check and update approval logic so all assigned users must approve.
+###### ✅ Urgent
+- **Stage Tracking per Record**  
+  - Add a **Notebook Page** per CRM record containing a table:  
+    - Stage Name  
+    - Start Date (when record entered stage)  
+    - End Date (when record left stage)  
+    - Difference (duration in that stage).  
+- **Average Stage Duration & Graphs**  
+  - Add a **Float field** to calculate **average duration** across stages.  
+  - Show **Average Duration** in views and use it to generate graphs.  
 
-2. **New Field Approach**
-   - Add a new `many2many` field for time-off approvers.
-   - Hide the original field.
-   - Update **Time Off → Configurations → Time Off Types** logic.
-   - Extend the last two approval functions to include the new field behavior.
-
------------------------------------
+> NOTE: Use "log code.txt file" and "the photo" that have sent on our group as a reference for you
