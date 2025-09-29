@@ -9,8 +9,9 @@
     'category': 'Customer Relationship Management',
     'depends': ['base','web','crm', 'mail'],
     'data': [
+        'security/security.xml',
         'security/ir.model.access.csv',
-        'data/data.xml',
+        # 'data/data.xml',
         'views/customer_success_lost_reason_view.xml',
         'views/customer_success_stage_views.xml',
         'views/customer_success_team_views.xml',

@@ -2,25 +2,32 @@
     <!-- Parent menu -->
     <menuitem id="menu_customer_success_root"
               name="Customer Success"
-              web_icon="customer_success,static/description/icon.png"/>
+              web_icon="customer_success,static/description/icon.png"
+              groups="customer_success.property_manager_group,customer_success.team_leader_group,customer_success.assigned_user_group"/>
+
+
 
     <menuitem id="menu_customer_success_dashboard"
               name="Dashboard"
               parent="menu_customer_success_root"
-              action="action_customer_success_dashboard_page"/>
+              action="action_customer_success_dashboard_page"
+             groups="customer_success.property_manager_group,customer_success.team_leader_group"/>
 
 
     <!-- Pipeline menu (formerly Records) -->
     <menuitem id="menu_customer_success_pipeline"
               name="Success Journeys"
               parent="menu_customer_success_root"
-              action="action_customer_success"/>
+              action="action_customer_success"
+    />
 
 
     <!-- Configurations parent submenu -->
     <menuitem id="menu_customer_success_configurations"
               name="Configurations"
-              parent="menu_customer_success_root"/>
+              parent="menu_customer_success_root"
+               groups="customer_success.property_manager_group"
+           />
 
     <!-- Stages inside Configurations -->
     <menuitem id="menu_customer_success_stages"

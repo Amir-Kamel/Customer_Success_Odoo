@@ -17,7 +17,7 @@ class CustomerSuccess(models.Model):
     # Stage + grouping
     stage_id = fields.Many2one(
         'customer.success.stage', string='Stage',
-        group_expand='_read_group_stage_ids', tracking=True, ondelete='cascade'
+        group_expand='_read_group_stage_ids', tracking=True,ondelete='cascade'
     )
     team_id = fields.Many2one('customer.success.team', string="Team", tracking=True)
 
