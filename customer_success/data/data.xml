@@ -1,0 +1,44 @@
+<odoo noupdate="1">
+
+                <record id="stage_onboard_and_deplo" model="customer.success.stage">
+        <field name="name">Onboard And Deploy</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="stage_adopt_and_implement" model="customer.success.stage">
+        <field name="name">Adopt And Implement</field>
+        <field name="sequence">2</field>
+    </record>
+
+    <record id="stage_support_and_troubleshoot" model="customer.success.stage">
+        <field name="name">Support And Troubleshoot</field>
+        <field name="sequence">3</field>
+    </record>
+
+    <record id="stage_expand" model="customer.success.stage">
+        <field name="name">Expand</field>
+        <field name="sequence">4</field>
+    </record>
+    <record id="stage_renew" model="customer.success.stage">
+        <field name="name">Renew</field>
+        <field name="sequence">5</field>
+    </record>
+    
+    <record id="stage_advocate" model="customer.success.stage">
+        <field name="name">Advocate</field>
+        <field name="sequence">6</field>
+    </record>
+
+    <!-- <record id="stage_achieved" model="customer.success.stage">
+                        <field name="name"> Achieved </field>
+                        <field name="sequence"> 10 </field>
+                        <field name="is_won"> 1 </field>
+    </record>
+
+        <record id="stage_churned" model="customer.success.stage">
+                        <field name="name"> Churned </field>
+                        <field name="sequence"> 11 </field>
+                        <field name="is_lost"> 1 </field>
+    </record> -->
+
+</odoo>

@@ -1,0 +1,42 @@
+<odoo>
+    <!-- Parent menu -->
+    <menuitem id="menu_customer_success_root"
+              name="Customer Success"
+              web_icon="customer_success,static/description/icon.png"/>
+
+    <menuitem id="menu_customer_success_dashboard"
+              name="Dashboard"
+              parent="menu_customer_success_root"
+              action="action_customer_success_dashboard_page"/>
+
+
+    <!-- Pipeline menu (formerly Records) -->
+    <menuitem id="menu_customer_success_pipeline"
+              name="Success Journeys"
+              parent="menu_customer_success_root"
+              action="action_customer_success"/>
+
+
+    <!-- Configurations parent submenu -->
+    <menuitem id="menu_customer_success_configurations"
+              name="Configurations"
+              parent="menu_customer_success_root"/>
+
+    <!-- Stages inside Configurations -->
+    <menuitem id="menu_customer_success_stages"
+              name="Stages"
+              parent="menu_customer_success_configurations"
+              action="action_customer_success_stage"/>
+
+    <!-- Teams inside Configurations -->
+    <menuitem id="menu_customer_success_teams"
+              name="Teams"
+              parent="menu_customer_success_configurations"
+              action="action_customer_success_team"/>
+
+    <!-- Tags inside Configurations -->
+    <menuitem id="menu_customer_success_tags"
+              name="Tags"
+              parent="menu_customer_success_configurations"
+              action="action_customer_success_tags"/>
+</odoo>
