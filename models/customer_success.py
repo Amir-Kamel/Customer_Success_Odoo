@@ -40,7 +40,19 @@ class CustomerSuccess(models.Model):
 
     last_feedback = fields.Html(string="Feedback")
     renewal_date = fields.Date(string="Renewal Date")
+
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
+    # 1. This special 'related' field magically finds the project from the linked CRM lead.
+    #    It will automatically update whenever 'related_crm_lead_id' changes.
+    related_project_id = fields.Many2one(
+        'project.project',
+        related='related_crm_lead_id.project_id',
+        string="Related CRM Project",
+        readonly=True,
+        store=True, # store=True helps with searching and performance
+        help="The project associated with the related CRM Lead."
+    )
+
     sequence_number = fields.Integer(string="Sequence")
 
     # Health bar logic
@@ -100,6 +112,18 @@ class CustomerSuccess(models.Model):
     )
 
 
+    # 2. This is the action method for our new smart button.
+    def action_view_project(self):
+        """Opens the related project in a form view."""
+        self.ensure_one()
+        # This is very similar to the crm.lead action, but it uses our new related field.
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Project',
+            'res_model': 'project.project',
+            'view_mode': 'form',
+            'res_id': self.related_project_id.id,
+        }
 
 
     @api.model
