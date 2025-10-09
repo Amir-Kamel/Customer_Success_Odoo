@@ -151,6 +151,14 @@
                 icon="fa-briefcase"
                 class="oe_stat_button"
                 invisible="related_crm_lead_id == False"/>
+
+              <button class="oe_stat_button"
+                    type="object"
+                    name="action_view_project"
+                    string="Related CRM Project"
+                    icon="fa-puzzle-piece"
+                    invisible="related_project_id == False">
+            </button>
           </div>
 
           <widget name="web_ribbon" title="Churned" bg_color="text-bg-danger" invisible="health_percentage != 0"/>
