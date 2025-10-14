@@ -16,6 +16,7 @@
         'views/customer_success_stage_views.xml',
         'views/customer_success_team_views.xml',
         'views/customer_success_views.xml',
+        'views/crm_lead_views.xml',
         'views/customer_success_tags_views.xml',
         'views/customer_success_dashboard_page_views.xml',
         'views/customer_success_dashboard_analytics_views.xml',
