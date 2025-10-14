@@ -12,12 +12,12 @@ class CustomerSuccess(models.Model):
 
     # Core fields
     name = fields.Char(string="Title", required=True)
-    partner_id = fields.Many2one('res.partner', string="Customer", tracking=True)
+    partner_id = fields.Many2one('res.partner', string="Client", tracking=True)
 
     # Stage + grouping
     stage_id = fields.Many2one(
         'customer.success.stage', string='Stage',
-        group_expand='_read_group_stage_ids', tracking=True, ondelete='cascade'
+        group_expand='_read_group_stage_ids', tracking=True,ondelete='cascade'
     )
     team_id = fields.Many2one('customer.success.team', string="Team", tracking=True)
 
@@ -40,12 +40,25 @@ class CustomerSuccess(models.Model):
 
     last_feedback = fields.Html(string="Feedback")
     renewal_date = fields.Date(string="Renewal Date")
+
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
+    # 1. This special 'related' field magically finds the project from the linked CRM lead.
+    #    It will automatically update whenever 'related_crm_lead_id' changes.
+    related_project_id = fields.Many2one(
+        'project.project',
+        related='related_crm_lead_id.project_id',
+        string="Related CRM Project",
+        readonly=True,
+        store=True, # store=True helps with searching and performance
+        help="The project associated with the related CRM Lead."
+    )
+
     sequence_number = fields.Integer(string="Sequence")
 
     # Health bar logic
-    health_percentage = fields.Integer(
+    health_percentage = fields.Float(
         string="Health %",
+        digits=(3, 1),
         compute='_compute_health_percentage',
         store=False
     )
@@ -99,6 +112,18 @@ class CustomerSuccess(models.Model):
     )
 
 
+    # 2. This is the action method for our new smart button.
+    def action_view_project(self):
+        """Opens the related project in a form view."""
+        self.ensure_one()
+        # This is very similar to the crm.lead action, but it uses our new related field.
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Project',
+            'res_model': 'project.project',
+            'view_mode': 'form',
+            'res_id': self.related_project_id.id,
+        }
 
 
     @api.model
@@ -204,7 +229,10 @@ class CustomerSuccess(models.Model):
                 elif rec.stage_id in normal_stages:
                     # Relative progress: divide by (total normal stages + 1) to avoid 100%
                     stage_index = normal_stages.index(rec.stage_id)
-                    rec.health_percentage = int((stage_index + 1) / (len(normal_stages) + 1) * 100)
+                    rec.health_percentage = round(
+                        (stage_index + 1) / (len(normal_stages) + 1) * 100, 1
+                    )
+
                 else:
                     rec.health_percentage = 0
             else:
