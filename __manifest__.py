@@ -20,7 +20,7 @@
         'views/customer_success_dashboard_analytics_views.xml',
         'views/customer_success_dashboard_contacts_views.xml',
         'views/menu_views.xml',
-
+        'views/survey_invite_inherit_views.xml',
     ],
     'demo': [],
     'assets': {

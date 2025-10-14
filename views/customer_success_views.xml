@@ -124,6 +124,13 @@
   <field name="arch" type="xml">
     <form string="Customer Success">
       <header>
+
+          <button name="action_ask_feedback"
+        string="Ask Feedback"
+        type="object"
+        class="oe_highlight"
+        invisible="not active"/>
+
         <button name="action_set_won" string="Achieved" type="object" class="btn-success"
         invisible="not active or stage_id.name == 'Achieved' or health_percentage == 100"/>
         <button name="action_set_lost" string="Churned" type="object" class="btn-danger"
@@ -158,6 +165,13 @@
                     string="Related CRM Project"
                     icon="fa-puzzle-piece"
                     invisible="related_project_id == False">
+            </button>
+
+             <button class="oe_stat_button"
+                    type="object"
+                    name="action_view_participations"
+                    icon="fa-list-alt">
+                <field name="survey_count" widget="statinfo" string="Participations"/>
             </button>
           </div>
 

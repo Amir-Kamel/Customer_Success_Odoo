@@ -1,0 +1,36 @@
+<odoo>
+    <record id="survey_invite_view_form_inherit_custom_success_fix" model="ir.ui.view">
+        <field name="name">survey.invite.view.form.inherit.custom.success.fix</field>
+        <field name="model">survey.invite</field>
+        <field name="inherit_id" ref="survey.survey_invite_view_form"/>
+        <field name="arch" type="xml">
+
+<xpath expr="//field[@name='partner_ids']" position="before">
+    <field name="custom_survey_id"
+           options="{'no_create': True, 'no_open': True}"
+           placeholder="Select a survey template..."
+           required="context.get('show_survey_template_selection')"
+
+           invisible="not context.get('show_survey_template_selection')"/>
+                                     </xpath>
+            <xpath expr="//field[@name='partner_ids']" position="after">
+                <label for="partner_ids" string="Recipients" invisible="1"/>
+                         </xpath>
+            <xpath expr="//label[@for='survey_start_url']" position="attributes">
+                <attribute name="invisible">custom_survey_id == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='survey_start_url']" position="attributes">
+                <attribute name="invisible">custom_survey_id == False</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='emails']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='subject']" position="attributes">
+                <attribute name="force_save">1</attribute>
+            </xpath>
+
+            </field>
+    </record>
+</odoo>

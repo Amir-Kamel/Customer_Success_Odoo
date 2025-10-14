@@ -6,3 +6,5 @@ from . import wizard_customer_success_lost_reason
 from . import customer_success_lost_reason
 from . import crm_lead
 from . import customer_success_dashboard
+from . import survey_invite
+from . import survey_user_input
