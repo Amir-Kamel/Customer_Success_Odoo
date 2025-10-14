@@ -1,0 +1,43 @@
+
+<odoo>
+<record id="assigned_user_group" model="res.groups">
+    <field name="name">Assigned User</field>
+</record>
+    <record id="team_leader_group" model="res.groups">
+    <field name="name">Team leader</field>
+</record>
+<record id="property_manager_group" model="res.groups">
+
+    <field name="name">Property Manager</field>
+</record>
+
+
+
+    <!-- ================= USER RULE ================= -->
+    <record id="rule_customer_success_user" model="ir.rule">
+        <field name="name">Customer Success: User Own Records</field>
+        <field name="model_id" ref="model_customer_success"/>
+        <field name="groups" eval="[(4, ref('customer_success.assigned_user_group'))]"/>
+        <field name="domain_force">[('assigned_user_id', '=', user.id)]</field>
+        <!-- Users cannot delete (handled also in access CSV) -->
+    </record>
+
+    <!-- ================= TEAM LEADER RULE ================= -->
+    <record id="rule_customer_success_leader" model="ir.rule">
+        <field name="name">Customer Success: Team Leader Records</field>
+        <field name="model_id" ref="model_customer_success"/>
+        <field name="groups" eval="[(4, ref('customer_success.team_leader_group'))]"/>
+        <field name="domain_force">['|',('assigned_user_id', '=', user.id),('team_id.leader_id', '=', user.id)]</field>
+        <!-- Team leader can view/edit/delete records in their team -->
+    </record>
+
+    <!-- ================= ADMIN RULE ================= -->
+    <record id="rule_customer_success_admin" model="ir.rule">
+        <field name="name">Customer Success: Admin Full Access</field>
+        <field name="model_id" ref="model_customer_success"/>
+        <field name="groups" eval="[(4, ref('customer_success.property_manager_group'))]"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <!-- Admin sees all records -->
+    </record>
+
+</odoo>
