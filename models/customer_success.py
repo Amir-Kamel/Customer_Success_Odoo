@@ -359,17 +359,10 @@ class CustomerSuccess(models.Model):
 
 
     def action_ask_feedback(self):
-        # We reuse the logic from survey.survey.action_send_survey
-        # The key is to pass the correct context values.
 
-        # 1. We look up the default template (this is what sets the default email body/subject)
         template = self.env.ref('survey.mail_template_user_input_invite', raise_if_not_found=False)
 
-        # 2. Prepare the context for the wizard
         local_context = {
-            # Pass any default survey ID if applicable (e.g., a default survey for this project type)
-            # For now, we leave default_survey_id as False or unset, as we want the user to select it in the wizard
-            # 'default_survey_id': self.env.ref('my_default_survey_xml_id').id,
 
             'default_template_id': template and template.id or False,
             'default_email_layout_xmlid': 'mail.mail_notification_light',
@@ -377,7 +370,6 @@ class CustomerSuccess(models.Model):
             'show_survey_template_selection': True,
         }
 
-        # 3. Return the action to open the survey.invite wizard
         return {
             'type': 'ir.actions.act_window',
             'name': _("Ask Feedback"), # New wizard title
