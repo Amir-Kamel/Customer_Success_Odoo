@@ -13,7 +13,7 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div class="o_kanban_card o_partner_card"
-                             style="width:280px; margin:8px; background:#fff; padding:12px; border-radius:8px;
+                             style="width:280px; margin:8px; background:var(--o-view-background-color); padding:12px; border-radius:8px;
                                     box-shadow:0 1px 3px rgba(0,0,0,0.06);">
                             <div style="display:flex; align-items:center; gap:10px;">
                                 <div class="o_kanban_image_fill position-relative"

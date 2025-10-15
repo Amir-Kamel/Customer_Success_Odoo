@@ -1,8 +1,6 @@
 from odoo import models, fields, api, _
 from datetime import date
-from odoo.exceptions import ValidationError
-from odoo.exceptions import UserError
-
+from odoo.exceptions import ValidationError, UserError
 
 class CustomerSuccess(models.Model):
     _name = 'customer.success'
@@ -16,11 +14,13 @@ class CustomerSuccess(models.Model):
 
     # Stage + grouping
     stage_id = fields.Many2one(
-        'customer.success.stage', string='Stage',
-        group_expand='_read_group_stage_ids', tracking=True,ondelete='cascade'
+        'customer.success.stage',
+        string='Stage',
+        group_expand='_read_group_stage_ids',
+        tracking=True,
+        ondelete='cascade'
     )
     team_id = fields.Many2one('customer.success.team', string="Team", tracking=True)
-
 
     assigned_user_id = fields.Many2one(
         'res.users',
@@ -42,14 +42,12 @@ class CustomerSuccess(models.Model):
     renewal_date = fields.Date(string="Renewal Date")
 
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
-    # 1. This special 'related' field magically finds the project from the linked CRM lead.
-    #    It will automatically update whenever 'related_crm_lead_id' changes.
     related_project_id = fields.Many2one(
         'project.project',
         related='related_crm_lead_id.project_id',
         string="Related CRM Project",
         readonly=True,
-        store=True, # store=True helps with searching and performance
+        store=True,
         help="The project associated with the related CRM Lead."
     )
 
@@ -76,8 +74,6 @@ class CustomerSuccess(models.Model):
         compute='_compute_lost_reason_label'
     )
 
-
-
     # NEW: flag indicator (green/red/none)
     flag_color = fields.Selection(
         [('green', 'Green'), ('red', 'Red'), ('none', 'None')],
@@ -99,11 +95,7 @@ class CustomerSuccess(models.Model):
         index=True,
     )
 
-
-
-    # Visibility / workflow helpers
     active = fields.Boolean(string='Active', default=True)
-
 
     activity_ids = fields.One2many(
         'mail.activity', 'res_id',
@@ -111,14 +103,14 @@ class CustomerSuccess(models.Model):
         domain=[('res_model', '=', 'customer.success')],
     )
 
-    # 1. Field to count related survey responses
     survey_count = fields.Integer(
         'Survey Count',
         compute='_compute_survey_count'
     )
 
+    matrix_ids = fields.One2many('customer.success.matrix', 'customer_success_id', string="Matrix Items")
+
     def _compute_survey_count(self):
-        # We search the new field on survey.user_input
         data = self.env['survey.user_input'].read_group(
             [('customer_success_id', 'in', self.ids)],
             ['customer_success_id'],
@@ -128,23 +120,15 @@ class CustomerSuccess(models.Model):
         for record in self:
             record.survey_count = count_map.get(record.id, 0)
 
-    # 2. Smart Button Action
     def action_view_participations(self):
         self.ensure_one()
         action = self.env['ir.actions.act_window']._for_xml_id('survey.action_survey_user_input')
-
-        # Filter the results by the current Customer Success record
         action['domain'] = [('customer_success_id', '=', self.id)]
         action['context'] = {'default_customer_success_id': self.id}
-
         return action
 
-
-    # 2. This is the action method for our new smart button.
     def action_view_project(self):
-        """Opens the related project in a form view."""
         self.ensure_one()
-        # This is very similar to the crm.lead action, but it uses our new related field.
         return {
             'type': 'ir.actions.act_window',
             'name': 'Project',
@@ -153,17 +137,11 @@ class CustomerSuccess(models.Model):
             'res_id': self.related_project_id.id,
         }
 
-
     @api.model
     def default_get(self, fields):
         res = super().default_get(fields)
-
-        # Get all stages ordered by sequence
         stages = self.env['customer.success.stage'].search([], order='sequence asc')
-
-        # Pick the first stage that is NOT Won/Lost
         normal_stage = next((s for s in stages if not s.is_won and not s.is_lost), False)
-
         if normal_stage:
             res['stage_id'] = normal_stage.id
         else:
@@ -172,49 +150,38 @@ class CustomerSuccess(models.Model):
                 "there are no normal stages (other than Achieved/Churned). "
                 "Please create at least one normal stage first."
             )
-
         return res
-
-    # -------- Onchange handlers CRM and Partner data --------
 
     @api.onchange('related_crm_lead_id')
     def _onchange_related_crm_lead_id(self):
-        """Reset all relevant fields, then set title, partner, and phone/email intelligently."""
         lead = self.related_crm_lead_id
         if not lead:
             return
-        # Always set the name/title
         self.name = lead.name or False
         self.partner_id = lead.partner_id or False
         self.phone = lead.partner_id.phone or lead.phone or False
         self.email = lead.partner_id.email or lead.email_from or False
 
-
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
-        """Reset phone/email, then set from partner."""
         if not self.partner_id:
             return
-
         if self.related_crm_lead_id and self.related_crm_lead_id.partner_id:
             if self.partner_id != self.related_crm_lead_id.partner_id:
-                # Revert the change
                 self.partner_id = self.related_crm_lead_id.partner_id
                 return {
                     'warning': {
                         'title': "Partner cannot be changed",
                         'message': "This record is linked to a CRM lead that already has a partner. "
                                    "You cannot assign a different partner. "
-                                    "Choose a partner in this related CRM lead instead.",
+                                   "Choose a partner in this related CRM lead instead.",
                     }
                 }
-
         if self.partner_id:
             self.phone = self.partner_id.phone or False
             self.email = self.partner_id.email or False
 
     def action_open_related_crm_lead(self):
-        """Open the related CRM Lead in a form view"""
         self.ensure_one()
         if not self.related_crm_lead_id:
             raise UserError("No related CRM Lead chosen!")
@@ -229,42 +196,23 @@ class CustomerSuccess(models.Model):
 
     @api.depends('team_id')
     def _compute_team_user_ids(self):
-        """Compute available users based on selected team"""
         for rec in self:
             if rec.team_id:
                 users = getattr(rec.team_id, 'user_ids', self.env['res.users'].browse())
                 rec.team_user_ids = users
             else:
                 rec.team_user_ids = self.env['res.users'].browse()
-            rec.team_user_ids = rec.team_id.user_ids if rec.team_id else self.env['res.users'].browse()
 
-    @api.depends('stage_id')
+    # ✅ New health percentage logic (from code 2)
+    @api.depends('matrix_ids.is_done')
     def _compute_health_percentage(self):
-        """Compute health percentage:
-           - 100% for Achieved (Won)
-           - 0% for Churned (Lost)
-           - Relative for normal stages, capped below 100
-        """
-        all_stages = self.env['customer.success.stage'].search([], order='sequence asc')
-        normal_stages = [s for s in all_stages if not s.is_won and not s.is_lost]
-
         for rec in self:
-            if rec.stage_id:
-                if rec.stage_id.is_won:
-                    rec.health_percentage = 100
-                elif rec.stage_id.is_lost:
-                    rec.health_percentage = 0
-                elif rec.stage_id in normal_stages:
-                    # Relative progress: divide by (total normal stages + 1) to avoid 100%
-                    stage_index = normal_stages.index(rec.stage_id)
-                    rec.health_percentage = round(
-                        (stage_index + 1) / (len(normal_stages) + 1) * 100, 1
-                    )
-
-                else:
-                    rec.health_percentage = 0
-            else:
+            total = len(rec.matrix_ids)
+            if total == 0:
                 rec.health_percentage = 0
+            else:
+                done_count = len(rec.matrix_ids.filtered(lambda m: m.is_done))
+                rec.health_percentage = round((done_count / total) * 100, 1)
 
     @api.depends('stage_id')
     def _compute_flag(self):
@@ -282,9 +230,6 @@ class CustomerSuccess(models.Model):
             if rec.team_id and rec.assigned_user_id and rec.assigned_user_id not in rec.team_id.user_ids:
                 raise ValidationError("Assigned user must be a member of the selected team.")
 
-    # -------------------------
-    # Group Expansion
-    # -------------------------
     def _read_group_stage_ids(self, stages, domain, order=None):
         return self.env['customer.success.stage'].search([], order='sequence')
 
@@ -295,23 +240,17 @@ class CustomerSuccess(models.Model):
         stage_records = Stage.sudo().search([], order=order)
         return Stage.browse(stage_records.ids)
 
-    # -------------------------
-    # Workflow action methods
-    # -------------------------
     def _get_stage_by_name(self, name):
         return self.env['customer.success.stage'].search([('name', '=', name)], limit=1)
 
     def action_show_success_animation(self):
         self.ensure_one()
-        # Your custom message
-        message = "🎉 Great! You achieved a new success story! 🌈"
-
         return {
             'effect': {
                 'fadeout': 'slow',
-                'message': message,
-                'img_url': '/web/static/img/smile.svg',  # optional: you can replace with a team/user image
-                'type': 'rainbow_man',  # can stay as 'rainbow_man' or 'success_animation'
+                'message': "🎉 Great! You achieved a new success story! 🌈",
+                'img_url': '/web/static/img/smile.svg',
+                'type': 'rainbow_man',
             }
         }
 
@@ -325,7 +264,6 @@ class CustomerSuccess(models.Model):
         return self.action_show_success_animation()
 
     def action_set_lost(self):
-        """Open wizard instead of directly setting Lost stage."""
         lost = self._get_stage_by_name('Churned')
         if not lost:
             raise UserError("Stage 'Churned' not found. Please create a stage marked as 'Churned'.")
@@ -337,11 +275,10 @@ class CustomerSuccess(models.Model):
             'view_mode': 'form',
             'view_id': self.env.ref(
                 'customer_success.view_customer_success_lost_reason_wizard_form'
-                ).id,
+            ).id,
             'target': 'new',
             'context': {'default_customer_success_id': self.id},
         }
-
 
     @api.depends('stage_id', 'lost_reason_id')
     def _compute_lost_reason_label(self):
@@ -351,30 +288,24 @@ class CustomerSuccess(models.Model):
             else:
                 rec.lost_reason_label = False
 
-
     def toggle_active(self):
         for rec in self:
             rec.active = not bool(rec.active)
         return True
 
-
     def action_ask_feedback(self):
-
         template = self.env.ref('survey.mail_template_user_input_invite', raise_if_not_found=False)
-
         local_context = {
-
-            'active_id': self.id,           # The ID of the current Customer Success record
-            'active_model': self._name,     # The model name ('customer.success')
+            'active_id': self.id,
+            'active_model': self._name,
             'default_template_id': template and template.id or False,
             'default_email_layout_xmlid': 'mail.mail_notification_light',
-            'default_send_email': True, # Assume we want to send an email
+            'default_send_email': True,
             'show_survey_template_selection': True,
         }
-
         return {
             'type': 'ir.actions.act_window',
-            'name': _("Ask Feedback"), # New wizard title
+            'name': _("Ask Feedback"),
             'view_mode': 'form',
             'res_model': 'survey.invite',
             'target': 'new',

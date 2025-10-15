@@ -12,9 +12,10 @@
                         <div class="o_kanban_card o_analytics_card"
                              t-att-onclick="'event.stopPropagation();'"
                              style="display:flex; justify-content:center; gap:20px; flex-wrap:nowrap; align-items:flex-start;
-                                    background:#fff; padding:18px; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.06);
-                                    width:100%; box-sizing:border-box; overflow-x:auto;">
+                                    background:var(--o-view-background-color); padding:18px; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.06);
+                                    width:100%; box-sizing:border-box; overflow-x:visible; overflow-y:visible;"
 
+                        >
                             <div style="flex:1; min-width:240px; max-width:360px; text-align:center;">
                                 <h4 style="margin:0 0 8px;">📊 Global Average Journey</h4>
                                 <div style="font-size:28px; font-weight:700; margin-bottom:6px;">
