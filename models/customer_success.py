@@ -364,6 +364,8 @@ class CustomerSuccess(models.Model):
 
         local_context = {
 
+            'active_id': self.id,           # The ID of the current Customer Success record
+            'active_model': self._name,     # The model name ('customer.success')
             'default_template_id': template and template.id or False,
             'default_email_layout_xmlid': 'mail.mail_notification_light',
             'default_send_email': True, # Assume we want to send an email
