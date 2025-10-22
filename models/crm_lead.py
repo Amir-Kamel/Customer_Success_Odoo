@@ -1,7 +1,10 @@
-from odoo import models,fields,api
-from datetime import timedelta
+from odoo import models, fields, api, _
+from datetime import timedelta, date
+from odoo.exceptions import ValidationError, UserError
 from odoo import tools
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class CrmLead(models.Model):
     _inherit = "crm.lead"
@@ -9,7 +12,8 @@ class CrmLead(models.Model):
     create_cs = fields.Selection(
         selection=[('yes', 'Yes'), ('no', 'No')],
         string='Customer Success Needed?',
-        default=False,  # Starts blank/unset
+        default=False,
+        tracking=True,
     )
     is_won = fields.Boolean(
         string='Is Won Stage?',
@@ -53,6 +57,7 @@ class CrmLead(models.Model):
         for rec in self:
             rec.show_cs_button = rec.create_cs == 'yes'
 
+
     def _get_customer_success_stage(self):
         stage_record = self.env.ref('Customer_Success.customer_success_stage_welcome', raise_if_not_found=False)
         if not stage_record:
@@ -63,8 +68,7 @@ class CrmLead(models.Model):
         return stage_record
 
     def _get_customer_success_initial_stage(self):
-        """Return the first normal customer.success.stage (not is_won and not is_lost).
-        Fallback to Achieved stage if none found."""
+
         stage = self.env['customer.success.stage'].search(
             [('is_won', '=', False), ('is_lost', '=', False)],
             order='sequence asc',
@@ -94,7 +98,7 @@ class CrmLead(models.Model):
         return False
 
     def _lead_phone_email(self, lead):
-        """Helper to choose phone/email from partner first, then lead fields."""
+
         phone = False
         email = False
         if lead:
@@ -107,39 +111,6 @@ class CrmLead(models.Model):
             if not email:
                 email = lead.email_from or False
         return phone, email
-
-
-    def action_set_won(self):
-        res = super().action_set_won()
-
-        CustomerSuccess = self.env['customer.success']
-        initial_stage = self._get_customer_success_initial_stage()
-        stage_id = initial_stage.id if initial_stage else False
-
-        to_create = []
-        for lead in self:
-            exists = CustomerSuccess.search([('related_crm_lead_id', '=', lead.id)], limit=1)
-            if exists:
-                continue
-
-            phone, email = self._lead_phone_email(lead)
-
-            vals = {
-                'name': lead.name or ('Customer Success for: %s' % (lead.id,)),
-                'partner_id': lead.partner_id.id or False,
-                'related_crm_lead_id': lead.id,
-                'stage_id': stage_id,
-                'phone': phone,
-                'email': email,
-            }
-            to_create.append(vals)
-
-        if to_create:
-            CustomerSuccess.create(to_create)
-
-        return res
-
-
 
     def action_open_cs(self):
 
@@ -175,37 +146,49 @@ class CrmLead(models.Model):
         }
 
 
+
     def write(self, vals):
-        # store previous stage ids so we can detect transitions
+
+        # 1) If stage is being changed (or probability) — detect attempted move TO Won and ensure create_cs is set
+        checking_stage_transition = ('stage_id' in vals) or ('probability' in vals)
+        if checking_stage_transition:
+            new_stage_id_global = vals.get('stage_id', False)
+            for rec in self:
+                new_stage_id = new_stage_id_global if new_stage_id_global else (
+                    rec.stage_id.id if rec.stage_id else False)
+                new_stage = self.env['crm.stage'].browse(new_stage_id) if new_stage_id else False
+                is_won_now = self._is_won_stage(new_stage)
+                final_create_cs = vals.get('create_cs') if 'create_cs' in vals else rec.create_cs
+                if is_won_now and final_create_cs not in ('yes', 'no'):
+                    raise ValidationError(
+                        _("You must choose 'Customer Success Needed?' (Yes or No) before moving the lead to a Won stage."))
+
+        # Proceed with super write
         old_stage_map = {rec.id: rec.stage_id.id if rec.stage_id else False for rec in self}
-        res = super().write(vals)
+        res = super(CrmLead, self).write(vals)
 
-
+        # 3) If user set create_cs to 'yes' explicitly, trigger action_set_won behavior (create CS if needed)
         if 'create_cs' in vals and vals.get('create_cs') == 'yes':
             for rec in self:
                 try:
-
                     rec.action_set_won()
                 except Exception:
-
+                    # fallback: try to set to a won crm.stage if action_set_won fails
                     Stage = self.env['crm.stage']
-
                     won_stage = Stage.search([('probability', '>=', 100)], limit=1)
                     if not won_stage:
                         won_stage = Stage.search([('name', 'ilike', 'won')], limit=1)
                     if not won_stage:
                         won_stage = Stage.search([('name', 'ilike', 'achieved')], limit=1)
                     if won_stage:
-
                         try:
                             rec.write({'stage_id': won_stage.id})
                         except Exception:
-
                             try:
                                 rec.sudo().write({'stage_id': won_stage.id})
                             except Exception:
-
                                 pass
+
 
         if 'stage_id' in vals or 'probability' in vals:
             CustomerSuccess = self.env['customer.success']
@@ -224,11 +207,11 @@ class CrmLead(models.Model):
                 was_won_before = self._is_won_stage(old_stage_record)
                 is_won_now = self._is_won_stage(rec.stage_id)
 
-
                 if is_won_now and not was_won_before:
+                    # Lead moved to Won: try to find or create related CustomerSuccess, or create activity
                     cs = CustomerSuccess.search([('related_crm_lead_id', '=', rec.id)], limit=1)
                     if cs:
-
+                        # create activity on cs to notify assigned user
                         activity_user_id = False
                         if hasattr(cs, 'assigned_user_id') and cs.assigned_user_id:
                             activity_user_id = cs.assigned_user_id.id
@@ -242,7 +225,6 @@ class CrmLead(models.Model):
                         try:
                             today_date = fields.Date.from_string(today_str)
                         except Exception:
-                            from datetime import date
                             today_date = date.today()
                         deadline_date = today_date + timedelta(days=1)
                         deadline_str = fields.Date.to_string(deadline_date)
@@ -254,12 +236,14 @@ class CrmLead(models.Model):
                         activity_type_id = activity_type.id if activity_type else False
 
                         summary = "CRM Lead returned to Won stage"
-                        note = "The CRM lead '%s' (id: %s) has been moved back to a Won stage in CRM. Please review." % (
+                        note = "The CRM lead '%s' (id: %s) has been moved to a Won stage in CRM. Please review." % (
                             rec.name or 'n/a', rec.id)
 
                         if not res_model_id or not activity_type_id:
-                            fallback_msg = "Notice: couldn't create mail.activity (missing metadata). Original notice: %s" % (note,)
-                            cs.message_post(body=fallback_msg, subject=summary, message_type='comment', subtype='mail.mt_note')
+                            fallback_msg = "Notice: couldn't create mail.activity (missing metadata). Original notice: %s" % (
+                            note,)
+                            cs.message_post(body=fallback_msg, subject=summary, message_type='comment',
+                                            subtype='mail.mt_note')
                         else:
                             activity_vals = {
                                 'res_model': 'customer.success',
@@ -274,10 +258,12 @@ class CrmLead(models.Model):
                             try:
                                 self.env['mail.activity'].create(activity_vals)
                             except Exception as e:
-                                err_msg = "Failed to create mail.activity: %s\nOriginal notice: %s" % (tools.ustr(e), note)
-                                cs.message_post(body=err_msg, subject=summary, message_type='comment', subtype='mail.mt_note')
+                                err_msg = "Failed to create mail.activity: %s\nOriginal notice: %s" % (
+                                tools.ustr(e), note)
+                                cs.message_post(body=err_msg, subject=summary, message_type='comment',
+                                                subtype='mail.mt_note')
                     else:
-                        # no CS exists -> preserve prior behavior: prepare to create a new CustomerSuccess record
+                        # no CS exists -> create new CustomerSuccess as before
                         phone, email = self._lead_phone_email(rec)
                         vals_cs = {
                             'name': rec.name or ('Customer Success for: %s' % (rec.id,)),
@@ -289,7 +275,7 @@ class CrmLead(models.Model):
                         }
                         to_create.append(vals_cs)
 
-                # 3) Transition OUT OF Won -> create a warning activity in Customer Success
+                # Transition OUT OF Won -> create a warning activity in Customer Success
                 if was_won_before and not is_won_now:
                     cs = CustomerSuccess.search([('related_crm_lead_id', '=', rec.id)], limit=1)
                     if not cs:
@@ -316,7 +302,6 @@ class CrmLead(models.Model):
                     try:
                         today_date = fields.Date.from_string(today_str)
                     except Exception:
-                        from datetime import date
                         today_date = date.today()
                     deadline_date = today_date + timedelta(days=1)
                     deadline_str = fields.Date.to_string(deadline_date)
@@ -332,12 +317,14 @@ class CrmLead(models.Model):
 
                     if not res_model_id or not activity_type_id:
                         fallback_msg = (
-                            "Warning: couldn't create mail.activity (missing res_model_id or activity_type). "
-                            "Original warning: %s" % (warning_note,))
+                                "Warning: couldn't create mail.activity (missing res_model_id or activity_type). "
+                                "Original warning: %s" % (warning_note,))
                         if cs:
-                            cs.message_post(body=fallback_msg, subject=warning_summary, message_type='comment', subtype='mail.mt_note')
+                            cs.message_post(body=fallback_msg, subject=warning_summary, message_type='comment',
+                                            subtype='mail.mt_note')
                         else:
-                            rec.message_post(body=fallback_msg, subject=warning_summary, message_type='comment', subtype='mail.mt_note')
+                            rec.message_post(body=fallback_msg, subject=warning_summary, message_type='comment',
+                                             subtype='mail.mt_note')
                     else:
                         activity_vals = {
                             'res_model': 'customer.success',
@@ -352,16 +339,16 @@ class CrmLead(models.Model):
                         try:
                             self.env['mail.activity'].create(activity_vals)
                         except Exception as e:
-                            err_msg = "Failed to create mail.activity: %s\nOriginal warning: %s" % (tools.ustr(e), warning_note)
+                            err_msg = "Failed to create mail.activity: %s\nOriginal warning: %s" % (
+                            tools.ustr(e), warning_note)
                             if cs:
-                                cs.message_post(body=err_msg, subject=warning_summary, message_type='comment', subtype='mail.mt_note')
+                                cs.message_post(body=err_msg, subject=warning_summary, message_type='comment',
+                                                subtype='mail.mt_note')
                             else:
-                                rec.message_post(body=err_msg, subject=warning_summary, message_type='comment', subtype='mail.mt_note')
-
+                                rec.message_post(body=err_msg, subject=warning_summary, message_type='comment',
+                                                 subtype='mail.mt_note')
 
             if to_create:
                 CustomerSuccess.create(to_create)
 
         return res
-
-

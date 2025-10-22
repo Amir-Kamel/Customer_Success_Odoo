@@ -1,28 +1,21 @@
 <odoo>
-    <record id="view_crm_lead_form_won_decision" model="ir.ui.view">
+  <record id="view_crm_lead_form_won_decision" model="ir.ui.view">
     <field name="name">crm.lead.form.won.decision</field>
     <field name="model">crm.lead</field>
     <field name="inherit_id" ref="crm.crm_lead_view_form"/>
     <field name="arch" type="xml">
-            <!-- Place the field in a suitable location, e.g., after probability or in a notebook page -->
-            <xpath expr="//field[@name='tag_ids']" position="after">
-              <field name="create_cs"
-               invisible="not stage_id.is_won"
-               required="stage_id.is_won"
-               readonly="create_cs"/>
-            </xpath>
-
-            <!-- New: Add smart button to button box -->
-         <xpath expr="//div[@name='button_box']" position="inside">
-    <button class="oe_stat_button"
-            type="object"
-            name="action_open_cs"
-            icon="fa-briefcase"
-            invisible="not show_cs_button">
-        <field string="Customer Success" name="cs_count" widget="statinfo"/>
-    </button>
-</xpath>
-
-        </field>
-    </record>
+      <xpath expr="//field[@name='tag_ids']" position="after">
+        <field name="create_cs" readonly="create_cs == 'no'"/>
+      </xpath>
+      <xpath expr="//div[@name='button_box']" position="inside">
+        <button class="oe_stat_button"
+                type="object"
+                name="action_open_cs"
+                icon="fa-briefcase"
+                invisible="not show_cs_button">
+          <field name="cs_count" widget="statinfo" string="Customer Success"/>
+        </button>
+      </xpath>
+    </field>
+  </record>
 </odoo>
