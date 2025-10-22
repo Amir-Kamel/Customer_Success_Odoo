@@ -2,6 +2,10 @@ from odoo import models, fields, api, _
 from datetime import date
 from odoo.exceptions import ValidationError
 from odoo.exceptions import UserError
+from datetime import timedelta
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class CustomerSuccess(models.Model):
@@ -40,6 +44,95 @@ class CustomerSuccess(models.Model):
 
     last_feedback = fields.Html(string="Feedback")
     renewal_date = fields.Date(string="Renewal Date")
+
+    @api.model
+    def _ensure_renew_stage(self):
+        stage = self.env['customer.success.stage'].search([('name', '=', 'Renew')], limit=1)
+        if stage:
+            return stage
+        try:
+            stage = self.env['customer.success.stage'].create({'name': 'Renew', 'sequence': 5})
+            _logger.info("Created customer.success.stage 'Renew' (id=%s)", stage.id)
+            return stage
+        except Exception:
+            _logger.exception("Failed to create 'Renew' stage")
+            return False
+
+    def _handle_renewal_date_logic(self, rec, renewal):
+        if not renewal:
+            return
+
+        try:
+            # حساب schedule_date = renewal - 7 أيام
+            dt = fields.Date.from_string(renewal)
+            schedule_dt = dt - timedelta(days=7)
+            schedule_date_str = fields.Date.to_string(schedule_dt)
+            today_str = fields.Date.to_string(fields.Date.context_today(self))
+        except Exception:
+            _logger.exception("Error computing schedule_date for customer.success id=%s", rec.id)
+            return
+
+        # إنشاء activity بتاريخ schedule_date
+        try:
+            activity_type = None
+            try:
+                activity_type = self.env.ref('mail.mail_activity_data_todo')
+            except Exception:
+                activity_type = None
+
+            activity_vals = {
+                'res_model_id': self.env['ir.model']._get(rec._name).id,
+                'res_id': rec.id,
+                'summary': _("Renewal reminder for %s") % (rec.name or ""),
+                'note': _("This record has a renewal date on %s. Activity is scheduled 7 days before.") % (renewal,),
+                'activity_type_id': activity_type.id if activity_type else False,
+                'user_id': rec.assigned_user_id.id if rec.assigned_user_id else rec.create_uid.id,
+                'date_deadline': schedule_date_str,
+            }
+            self.env['mail.activity'].sudo().create(activity_vals)
+            _logger.info("Created mail.activity for customer.success id=%s on %s", rec.id, schedule_date_str)
+        except Exception:
+            _logger.exception("Failed to create mail.activity for customer.success id=%s", rec.id)
+
+        try:
+            if schedule_dt <= fields.Date.from_string(fields.Date.context_today(self)) or \
+                    fields.Date.from_string(renewal) <= fields.Date.from_string(fields.Date.context_today(self)):
+
+                renew_stage = self._ensure_renew_stage()
+                if renew_stage and rec.stage_id != renew_stage:
+                    old_stage = rec.stage_id.name if rec.stage_id else _('(no stage)')
+                    rec.stage_id = renew_stage.id
+                    rec.message_post(
+                        body=_(
+                            "Stage changed automatically to <b>Renew</b> because renewal is on %s (scheduled check date %s).") %
+                             (renewal, schedule_date_str),
+                        subtype_xmlid="mail.mt_note"
+                    )
+                    _logger.info("Moved customer.success id=%s from %s to Renew", rec.id, old_stage)
+        except Exception:
+            _logger.exception("Failed to set stage immediately for customer.success id=%s", rec.id)
+
+    @api.model
+    def create(self, vals):
+        rec = super(CustomerSuccess, self).create(vals)
+
+        renewal = vals.get('renewal_date') or getattr(rec, 'renewal_date', False)
+        if renewal:
+            self._handle_renewal_date_logic(rec, renewal)
+
+        return rec
+
+    def write(self, vals):
+
+        res = super(CustomerSuccess, self).write(vals)
+
+        if 'renewal_date' in vals:
+            for rec in self:
+                renewal = vals.get('renewal_date') or getattr(rec, 'renewal_date', False)
+                if renewal:
+                    self._handle_renewal_date_logic(rec, renewal)
+
+        return res
 
     related_crm_lead_id = fields.Many2one('crm.lead', string="Related CRM Lead")
     # 1. This special 'related' field magically finds the project from the linked CRM lead.
