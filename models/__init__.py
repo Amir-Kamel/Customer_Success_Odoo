@@ -8,3 +8,4 @@ from . import crm_lead
 from . import customer_success_dashboard
 from . import survey_invite
 from . import survey_user_input
+from . import contact

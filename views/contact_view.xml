@@ -1,0 +1,76 @@
+<odoo>
+  <record id="view_res_partner_form_add_about" model="ir.ui.view">
+    <field name="name">res.partner.form.add.about</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="base.view_partner_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//notebook/page[@name='internal_notes']" position="after">
+        <page name="general" string="General">
+          <group>
+            <group string="Organization Details">
+              <field name="company_name"/>
+              <field name="sector"/>
+              <field name="country"/>
+              <field name="Team_Size"/>
+              <field name="account_manager"/>
+            </group>
+
+            <group string="Leadership Chart">
+
+              <group string="C Suite" colspan="2">
+                <group>
+                  <field name="leader_name" string="Name"/>
+                </group>
+                <group>
+                  <field name="x_title" string="Title"/>
+                </group>
+              </group>
+
+              <group string="Department Head">
+                  <group>
+                  <field name="department_name" string="Name"/>
+                </group>
+                <group>
+                  <field name="department_title" string="Title"/>
+                </group>
+              </group>
+
+                <group string="Key Decision Makers">
+                  <group>
+                  <field name="decision_maker_name" string="Name"/>
+                 </group>
+                 <group>
+                  <field name="decision_maker_title" string="Title"/>
+                 </group>
+                </group>
+
+            </group>
+
+            <group string="Industry, Segment and Market Position">
+              <field name="industry_id"/>
+              <field name="segment" string="Size/Segment"/>
+              <field name="Market_Share"/>
+              <field name="Competitors"/>
+              <field name="Trends"/>
+              <field name="Challenges"/>
+            </group>
+
+            <group string="Departments and Divisions">
+            <group string="Departments">
+                    <field name="division_name"/>
+                    <field name="manager"/>
+                     <field name="size"/>
+             </group>
+
+              <group string="Subdivisions / Regional Offices">
+                <field name="region_name"/>
+                <field name="region_manager"/>
+                <field name="region_size"/>
+              </group>
+              </group>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+</odoo>
